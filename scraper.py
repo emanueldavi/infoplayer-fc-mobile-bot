@@ -71,19 +71,21 @@ def getInfoPlayer(id):
     except Exception as e:
         return f'Error: {e}'
     
-def getInfoPlayerBoost(id, data):
+def getInfoPlayerBoost(id, data, level=None):
     try:
         url = getUrlUpgrade(id)
         rank = data
+        level = level if level is not None else 0 # Default to level 30 if not provided
         data = {
             "upgradeModels": {
-              # "level": 30,
-              "rankUp": rank[4:],
+              "level": level,
+              "rankUp": rank,
+              
               "skillUpgrades": [
-              {
-                "id": 9020,
-                "level": 3
-              }
+              # {
+              #   "id": 9020,
+              #   "level": 3
+              # }
             ]
           },
           "playerId": id
