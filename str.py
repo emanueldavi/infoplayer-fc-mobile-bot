@@ -16,3 +16,12 @@ POSICIONES_ES = {
     "GK": "POR"
     # Agrega más si necesitas
 }
+
+RANK_ES = {
+    "0": "Base",
+    "1": "Verde",
+    "2": "Azul",
+    "3": "Morado",
+    "4": "Rojo",
+    "5": "Naranja"
+}
