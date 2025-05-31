@@ -1,7 +1,9 @@
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
-from config import TOKEN
+import os
 from handlers import start, player, help_command, botones_callback
 import logging
+
+TOKEN = os.getenv("TOKEN")
 
 # Configura el logging
 logging.basicConfig(
