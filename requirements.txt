@@ -2,3 +2,4 @@ python-telegram-bot==20.7
 httpx
 requests
 beautifulsoup4
+dontenv
