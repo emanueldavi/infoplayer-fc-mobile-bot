@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 import os
 from handlers import start, player, help_command, botones_callback
