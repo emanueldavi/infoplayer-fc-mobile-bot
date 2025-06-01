@@ -20,7 +20,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
     # si el rango es 0, seria rango verde, si es 1, seria rango azul, etc.
     
     mensaje = (
-        f"👤 *Nombre*: {jugador.get('firstName', 'Desconocido')} {jugador.get('lastName', 'Desconocido')}\n"
+        f"👤 *Nombre*: {jugador.get('commonName', 'Desconocido')}\n"
         f"\n"
         f"*Información de la Carta jugador*:\n"
         f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
@@ -49,16 +49,43 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        name = context.args[0]
+        name = " ".join(context.args)
         resultado = searchPlayer(name)
         if isinstance(resultado, dict) and 'players' in resultado:
             players = resultado['players']
             if players:
-                primer_jugador = players[0]
-                stats = primer_jugador.get('avgStats', {})
-                context.user_data['jugador_original'] = primer_jugador
-                mensaje, reply_markup = construir_mensaje_y_botones(primer_jugador, stats)
-                await update.message.reply_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+                # Agrupar por (bindingXml, playerId) y mostrar solo el transferible si existe, si no el primero
+                cartas_dict = {}
+                for jugador in players:
+                    binding = jugador.get('bindingXml')
+                    player_id = jugador.get('playerId')
+                    if not binding or not player_id:
+                        continue
+                    clave = (binding, player_id)
+                    if clave not in cartas_dict:
+                        cartas_dict[clave] = []
+                    cartas_dict[clave].append(jugador)
+                unicos = []
+                for grupo in cartas_dict.values():
+                    transferibles = [j for j in grupo if j.get('auctionable', False)]
+                    if transferibles:
+                        unicos.append(transferibles[0])
+                    else:
+                        unicos.append(grupo[0])
+                # Mostrar los primeros 10 jugadores únicos como botones
+                keyboard = []
+                for jugador in unicos[:10]:
+                    program = jugador.get('source', 'N/A').split('_')
+                    program = program[1] if len(program) > 1 else program[0]
+                    texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {jugador.get('commonName')}, {jugador.get('rating', 'N/A')} {program}"
+                    player_asset_id = jugador.get('assetId')
+                    keyboard.append([InlineKeyboardButton(texto, callback_data=f"select_{player_asset_id}")])
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text(
+                    "Selecciona el jugador que buscas:",
+                    reply_markup=reply_markup
+                )
+                context.user_data['player_search_results'] = unicos
             else:
                 await update.message.reply_text('No se encontraron jugadores con ese nombre.')
         else:
@@ -161,3 +188,15 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Solo es un botón decorativo.",
             show_alert=True
             )
+    elif data.startswith('select_'):
+        player_id = data.split('_')[1]
+        players = context.user_data.get('player_search_results', [])
+        jugador = next((p for p in players if str(p.get('assetId')) == player_id), None)
+        if jugador:
+            stats = jugador.get('avgStats', {})
+            context.user_data['jugador_original'] = jugador
+            mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
+            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+        else:
+            await query.edit_message_text("No se pudo encontrar el jugador seleccionado.")
+        return
