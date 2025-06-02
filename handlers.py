@@ -21,30 +21,52 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
         posiciones_secundarias_str = ', '.join(posiciones_secundarias_es) if posiciones_secundarias_es else 'N/A'
     else:
         posiciones_secundarias_str = 'N/A'
-    # si el rango es 0, seria rango verde, si es 1, seria rango azul, etc.
-    
-    mensaje = (
-        f"👤 *Nombre*: {escape_markdown(jugador.get('commonName', 'Desconocido'))}\n"
-        f"\n"
-        f"*Información de la Carta jugador*:\n"
-        f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
-        f"📊 *Rango*: {rango_es}\n"
-        f"⚓️ *Posición*: {posicion_es}\n"
-        f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
-        f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
-        f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
-        f"🪄 *Posiciones Secundarias*: {posiciones_secundarias_str}\n"
-        f"\n"
-        f"📊 *Estadísticas*:\n"
-        f"⚡️ *Velocidad*: {stats.get('avg1', 'N/A')}\n"
-        f"🎯 *Disparo*: {stats.get('avg2', 'N/A')}\n"
-        f"⚽️ *Pase*: {stats.get('avg3', 'N/A')}\n"
-        f"💥 *Regate*: {stats.get('avg4', 'N/A')}\n"
-        f"🛡 *Defensa*: {stats.get('avg5', 'N/A')}\n"
-        f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
-    )
+
+    nombre = escape_markdown(jugador.get('commonName', 'Desconocido'))
+
+    if posicion == "GK":
+        mensaje = (
+            f"👤 *Nombre*: {nombre}\n"
+            f"\n"
+            f"*Información de la Carta jugador*:\n"
+            f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"📊 *Rango*: {rango_es}\n"
+            f"⚓️ *Posición*: {posicion_es}\n"
+            f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
+            f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
+            f"📏 *Altura*: {jugador.get('height', 'N/A')}cm\n"
+            f"\n"
+            f"📊 *Estadísticas*:\n"
+            f"🧤 *Estirada*: {stats.get('avg1', 'N/A')}\n"
+            f"🎯 *Colocación*: {stats.get('avg2', 'N/A')}\n"
+            f"⚽️ *Manejo*: {stats.get('avg3', 'N/A')}\n"
+            f"⚡️ *Reflejos*: {stats.get('avg4', 'N/A')}\n"
+            f"🦵🏻 *Patada*: {stats.get('avg5', 'N/A')}\n"
+            f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
+        )
+    else:
+        mensaje = (
+            f"👤 *Nombre*: {nombre}\n"
+            f"\n"
+            f"*Información de la Carta jugador*:\n"
+            f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"📊 *Rango*: {rango_es}\n"
+            f"⚓️ *Posición*: {posicion_es}\n"
+            f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
+            f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
+            f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
+            f"🪄 *Posiciones Secundarias*: {posiciones_secundarias_str}\n"
+            f"\n"
+            f"📊 *Estadísticas*:\n"
+            f"⚡️ *Velocidad*: {stats.get('avg1', 'N/A')}\n"
+            f"🎯 *Disparo*: {stats.get('avg2', 'N/A')}\n"
+            f"⚽️ *Pase*: {stats.get('avg3', 'N/A')}\n"
+            f"💥 *Regate*: {stats.get('avg4', 'N/A')}\n"
+            f"🛡 *Defensa*: {stats.get('avg5', 'N/A')}\n"
+            f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
+        )
+
     keyboard = getButtonsE(playerId)
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     return mensaje, reply_markup
 
@@ -200,7 +222,11 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         players = context.user_data.get('player_search_results', [])
         jugador = next((p for p in players if str(p.get('assetId')) == player_id), None)
         if jugador:
-            stats = jugador.get('avgStats', {})
+            if jugador.get('position') == 'GK':
+                stats = jugador.get('avgGkStats', {})
+            else:
+                stats = jugador.get('avgStats', {})
+            
             context.user_data['jugador_original'] = jugador
             mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
             await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
