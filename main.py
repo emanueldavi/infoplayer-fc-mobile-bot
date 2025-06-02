@@ -1,4 +1,5 @@
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram import Bot
 import os
 from handlers import start, player, help_command, botones_callback
 import logging
@@ -20,9 +21,22 @@ def main():
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('player', player))
     app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CallbackQueryHandler(botones_callback)) # Handler para los botones
-    app.add_error_handler(error_handler)  # <-- Agrega esta línea
+    app.add_handler(CallbackQueryHandler(botones_callback))
+    app.add_error_handler(error_handler)
+
+    # Enviar mensaje al creador al iniciar
+    async def notificar_creador():
+        bot = Bot(TOKEN)
+        try:
+            await bot.send_message(chat_id=os.getenv('OWNER_ID') , text="✅ El bot se ha iniciado correctamente.")
+        except Exception as e:
+            print(f"Error enviando mensaje al creador: {e}")
+
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(notificar_creador())
+
     app.run_polling()
+    
 
 if __name__ == '__main__':
     main()
