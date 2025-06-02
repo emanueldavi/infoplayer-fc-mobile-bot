@@ -4,6 +4,10 @@ from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost
 from str import POSICIONES_ES, RANK_ES
 from btns import getButtonsE
+import re
+
+def escape_markdown(text):
+    return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
 
 def construir_mensaje_y_botones(jugador, stats, grl=None):
     posicion = jugador.get('position', 'N/A')
@@ -20,7 +24,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
     # si el rango es 0, seria rango verde, si es 1, seria rango azul, etc.
     
     mensaje = (
-        f"👤 *Nombre*: {jugador.get('commonName', 'Desconocido')}\n"
+        f"👤 *Nombre*: {escape_markdown(jugador.get('commonName', 'Desconocido'))}\n"
         f"\n"
         f"*Información de la Carta jugador*:\n"
         f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
@@ -77,7 +81,10 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 for jugador in unicos[:10]:
                     program = jugador.get('source', 'N/A').split('_')
                     program = program[1] if len(program) > 1 else program[0]
-                    texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {jugador.get('commonName')}, {jugador.get('rating', 'N/A')} {program}"
+                    nombre = jugador.get('commonName')
+                    if not nombre:
+                        nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
+                    texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {nombre}, {jugador.get('rating', 'N/A')} {program}"
                     player_asset_id = jugador.get('assetId')
                     keyboard.append([InlineKeyboardButton(texto, callback_data=f"select_{player_asset_id}")])
                 reply_markup = InlineKeyboardMarkup(keyboard)
