@@ -2,14 +2,24 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost
-from str import POSICIONES_ES, RANK_ES
+from str import POSICIONES_ES, RANK_ES, SKILLS
 from btns import getButtonsE
 import re
 
-def escape_markdown(text):
-    return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', str(text))
+def escape_markdown(text, code=False):
+    """
+    Escapa caracteres especiales para MarkdownV2 de Telegram.
+    Si code=True, escapa todos los caracteres especiales (para monoespaciado).
+    Si code=False, deja * y _ y ` sin escapar (para negrita/cursiva/monoespaciado).
+    """
+    if code:
+        # Escapa todos los caracteres especiales para monoespaciado
+        return re.sub(r'([\\`*_{}\[\]()#+\-.!|>~=])', r'\\\1', str(text))
+    else:
+        # Escapa todos excepto * _ ` para permitir negrita/cursiva/monoespaciado
+        return re.sub(r'([\\{}\[\]()#+\-.!|>~=])', r'\\\1', str(text))
 
-def construir_mensaje_y_botones(jugador, stats, grl=None):
+def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     posicion = jugador.get('position', 'N/A')
     posicion_es = POSICIONES_ES.get(posicion, posicion)
     rango = jugador.get('rank', 0)
@@ -21,14 +31,16 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
         posiciones_secundarias_str = ', '.join(posiciones_secundarias_es) if posiciones_secundarias_es else 'N/A'
     else:
         posiciones_secundarias_str = 'N/A'
-
+    nombre = jugador.get('commonName', '')
+    if not nombre:
+        nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
     nombre = escape_markdown(jugador.get('commonName', 'Desconocido'))
 
     if posicion == "GK":
         mensaje = (
             f"👤 *Nombre*: {nombre}\n"
             f"\n"
-            f"*Información de la Carta jugador*:\n"
+            f"*Información de la Carta*:\n"
             f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
@@ -48,7 +60,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
         mensaje = (
             f"👤 *Nombre*: {nombre}\n"
             f"\n"
-            f"*Información de la Carta jugador*:\n"
+            f"*Información de la Carta*:\n"
             f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
@@ -64,14 +76,20 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
             f"💥 *Regate*: {stats.get('avg4', 'N/A')}\n"
             f"🛡 *Defensa*: {stats.get('avg5', 'N/A')}\n"
             f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
+            f"🥵 *Resistencia*: {stats.get('stamina', 'N/A')}\n"
         )
-
     keyboard = getButtonsE(playerId)
     reply_markup = InlineKeyboardMarkup(keyboard)
     return mensaje, reply_markup
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Bienvenido al bot para obtener la información sobre los jugadores del juego FC Mobile, como sus estadísticas, GRL, entre otras cosas. Envía /help para ver los comandos disponibles.')
+    await update.message.reply_text(
+        escape_markdown(
+            "_*¡Bienvenido al mejor bot de FC MOBILE en Telegram! Usando mis comandos podrás obtener la información sobre los jugadores del juego, como sus estadísticas, GRL, entre otras cosas.*_\n\n"
+            "_*Envía /help para ver los comandos disponibles.*_"
+        ),
+        parse_mode="MarkdownV2"
+    )
 
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
@@ -118,10 +136,15 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text('No se encontraron jugadores con ese nombre.')
         else:
-            await update.message.reply_text(f'Error en la búsqueda: {resultado}')
+            await update.message.reply_text(escape_markdown( '_*Ha ocurrido un error, este jugador no se encuentra en los datos de FC MOBILE, por favor inténtelo nuevamente, proporcionando datos correctos.*_'), parse_mode="MarkdownV2")
     else:
-        await update.message.reply_text('Por favor, proporciona el nombre del jugador. Ejemplo: /player messi')
-
+        await update.message.reply_text(
+            escape_markdown(
+            '_*Para brindarte información, debes proporcionar el nombre del jugador a investigar.*_\n\n'
+            f'_*Ejemplo:*_ `{escape_markdown('/player Jugador', code=True)}`'
+            ),
+            parse_mode="MarkdownV2"
+        )
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = (
         "Comandos disponibles:\n"
@@ -179,6 +202,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
         resultado = getInfoPlayerBoost(jugador_id, rank, level=nivel_num)
+        jugador_original['level'] = nivel_num  # Actualiza o agrega el nivel del jugador original
         player_data = resultado.get('playerData', {})
         stats = player_data.get('avgStats', {})
         mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'))
@@ -202,6 +226,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             stats = player_data.get('avgStats', {})
             grl = player_data.get('rating', jugador_original.get('rating', 'N/A'))
             jugador_original['rank'] = 0
+            stats['stamina'] = player_data.get('stats', {}).get('sta', 'N/A')  # Reiniciar resistencia a 0
 
             mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, grl)
         try:
@@ -221,15 +246,86 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         player_id = data.split('_')[1]
         players = context.user_data.get('player_search_results', [])
         jugador = next((p for p in players if str(p.get('assetId')) == player_id), None)
+        
         if jugador:
             if jugador.get('position') == 'GK':
                 stats = jugador.get('avgGkStats', {})
             else:
                 stats = jugador.get('avgStats', {})
-            
+                stats['stamina'] = jugador.get('stats', {}).get('sta', 0)
             context.user_data['jugador_original'] = jugador
             mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
             await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
         else:
             await query.edit_message_text("No se pudo encontrar el jugador seleccionado.")
         return
+    elif data.startswith('skillUnlock_'):
+        player_id = data.split('_')[1]
+        if player_id:
+            keyboard = []
+            skill = jugador_original.get('skillStyleSkills', 0)
+            for skills in skill:
+                if skills.get('id'):
+                    keyboard.append([InlineKeyboardButton(SKILLS.get(str(skills.get('id')), skills.get('id')), callback_data=f"skill_{player_id}_{skills.get('id')}")])
+            keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_reply_markup(reply_markup=reply_markup)     
+            # await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+        else:
+            await query.edit_message_text("No se pudo encontrar el jugador seleccionado.")
+        return
+    
+    elif data.startswith('skill_'):
+        partes = data.split('_')
+        player_id = partes[1]
+        skill_id = partes[2] if len(partes) > 2 else None
+        if player_id and skill_id:
+            skills = jugador_original.get('skillUpgrades', [])
+            skill = next((s for s in skills if s.get('id') == skill_id), None)
+            if skill:
+                skill['level'] = skill['level'] + 1
+                print(skill['level'])  # Incrementar el nivel de la habilidad existente
+            else:
+                # Si no existe, agregar la habilidad con nivel 1 (o el nivel que desees)
+                skills.append({
+                    'id': skill_id,
+                    'level': 1
+                })
+            print(skills)
+
+            resultado = getInfoPlayerBoost(player_id, jugador_original.get('rank', 0) , jugador_original.get('level', 0), skill=skills)
+            print(resultado)
+
+            try:
+                player_data = resultado.get('playerData', {})
+                jugador_original['skillStyleSkills'] = player_data.get('skillUpgrades', [])
+                stats = player_data.get('avgStats', {})
+                mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, skill=True)
+                await query.edit_message_text(mensaje, reply_markup=query.message.reply_markup, parse_mode="MarkdownV2")
+            except BadRequest as e:
+                if "Message is not modified" in str(e):
+                    await query.answer(
+                        text="Ha ocurrido un error al intentar actualizar las estadísticas del jugador.",
+                        show_alert=True
+                    )
+                    return
+                else:
+                    raise
+            except AttributeError as e:
+                if "'str' object has no attribute 'get'" in str(e):
+                    await query.answer(
+                        text="Para aplicar habilidades, primero debes subir de rango al jugador.",
+                        show_alert=True
+                    )
+                    return
+                else:
+                    raise
+
+    elif data.startswith('backToMainMenu_'):
+        player_id = data.split('_')[1]
+        if player_id:
+            keyboard = getButtonsE(player_id)
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
+        else:
+            return

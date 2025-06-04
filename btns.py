@@ -32,8 +32,32 @@ def getButtonsE(playerId: str) -> list:
             InlineKeyboardButton("30", callback_data=f'level30_{playerId}'),
         ],
         [
+            InlineKeyboardButton("Habilidades", callback_data=f'skillUnlock_{playerId}'),
+        ],
+        [
             InlineKeyboardButton("Reiniciar", callback_data=f'resetAll_{playerId}'),
         ]
 
 
+    ]
+
+def getButtonsH(playerId: str) -> list:
+    """ Crea los botones para las habilidades de un jugador específico.
+    :param playerId: ID del jugador.
+    :return: Lista de listas con los botones.
+    """
+    return [
+        [
+            InlineKeyboardButton("Habilidades", callback_data='ignore'),
+        ],
+        [
+            InlineKeyboardButton("Habilidad 1", callback_data=f'skill1_{playerId}'),
+            InlineKeyboardButton("Habilidad 2", callback_data=f'skill2_{playerId}'),
+            InlineKeyboardButton("Habilidad 3", callback_data=f'skill3_{playerId}'),
+            InlineKeyboardButton("Habilidad 4", callback_data=f'skill4_{playerId}'),
+            InlineKeyboardButton("Habilidad 5", callback_data=f'skill5_{playerId}'),
+        ],
+        [
+            InlineKeyboardButton("Volver", callback_data='backToMainMenu')
+        ]
     ]
