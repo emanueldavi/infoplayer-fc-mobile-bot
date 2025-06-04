@@ -64,6 +64,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None):
             f"💥 *Regate*: {stats.get('avg4', 'N/A')}\n"
             f"🛡 *Defensa*: {stats.get('avg5', 'N/A')}\n"
             f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
+            f"🥵 *Resistencia*:"
         )
 
     keyboard = getButtonsE(playerId)
@@ -226,6 +227,8 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 stats = jugador.get('avgGkStats', {})
             else:
                 stats = jugador.get('avgStats', {})
+                await query.update.reply_text(escape_markdown(jugador))
+                # stats['stamina'] = jugador.get('stats', 'N/A').get('sta', 'N/A')
             
             context.user_data['jugador_original'] = jugador
             mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
