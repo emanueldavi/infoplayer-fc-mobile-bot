@@ -5,7 +5,7 @@ from handlers import start, player, help_command, botones_callback, group_id
 import logging
 
 TOKEN = os.getenv("TOKEN")
-GROUP_ID = os.getenv("GROUP_ID-1")
+GROUP_ID = os.getenv("GROUP_ID")
 
 # Configura el logging
 logging.basicConfig(
