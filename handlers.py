@@ -91,6 +91,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="MarkdownV2"
     )
 
+async def group_id(update: Update, context):
+    chat_id = update.effective_chat.id
+    await update.message.reply_text(f"El ID de este chat/grupo es: `{chat_id}`", parse_mode="MarkdownV2")
+
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         name = " ".join(context.args)
