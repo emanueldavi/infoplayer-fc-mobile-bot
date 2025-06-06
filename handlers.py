@@ -32,9 +32,9 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     else:
         posiciones_secundarias_str = 'N/A'
     nombre = jugador.get('commonName', '')
-    if not nombre:
-        nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
-    nombre = escape_markdown(jugador.get('commonName', 'Desconocido'))
+    if  nombre == '':
+        nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}"
+    nombre = escape_markdown(nombre)
 
     if posicion == "GK":
         mensaje = (
@@ -171,6 +171,8 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             resultado = getInfoPlayerBoost(jugador_id, rango[4:])
             player_data = resultado.get('playerData', {})
             stats = player_data.get('avgStats', {})
+            stats['stamina'] = player_data.get('stats', {}).get('sta', 0)
+
             grl = player_data.get('rating', jugador_original.get('rating', 'N/A'))
             jugador_original['rank'] = player_data.get('rank', 0)            # Actualiza el jugador original con el nuevo rango
             context.user_data['jugador_original'] = jugador_original
@@ -209,6 +211,8 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         jugador_original['level'] = nivel_num  # Actualiza o agrega el nivel del jugador original
         player_data = resultado.get('playerData', {})
         stats = player_data.get('avgStats', {})
+        stats['stamina'] = player_data.get('stats', {}).get('sta', 0)
+
         mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'))
         try:
             await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
