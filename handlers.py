@@ -153,10 +153,16 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     player_asset_id = jugador.get('assetId')
                     keyboard.append([InlineKeyboardButton(texto, callback_data=f"select_{player_asset_id}")])
                 reply_markup = InlineKeyboardMarkup(keyboard)
-                await update.message.reply_text(
+                msg = await update.message.reply_text(
                     "Selecciona el jugador que buscas:",
                     reply_markup=reply_markup
                 )
+                context.chat_data[msg.message_id] = {
+                    'player_search_results': unicos,
+                    'owner_id': update.effective_user.id,
+                    # ...otros datos necesarios...
+                }
+                
                 context.user_data['player_search_results'] = unicos
                 context.user_data['owner_id'] = update.effective_user.id  # <--- Guarda el dueño
             else:
@@ -183,15 +189,24 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
+    msg_id = query.message.message_id
 
-    owner_id = context.user_data.get('owner_id')
-    if owner_id and query.from_user.id != owner_id:
+    datos = context.chat_data.get(msg_id)
+    if not datos:
         await query.answer(
-        text="⛔️ Solo el usuario que generó este mensaje puede usar estos botones.",
-        show_alert=True
+            text="⛔️ Este mensaje ya no es válido o no tienes permiso.",
+            show_alert=True
         )
         return
-    
+
+    owner_id = datos.get('owner_id')
+    if owner_id and query.from_user.id != owner_id:
+        await query.answer(
+            text="⛔️ Solo el usuario que generó este mensaje puede usar estos botones.",
+            show_alert=True
+        )
+        return
+
     jugador_original = context.user_data.get('jugador_original')
     if data.startswith('rank') and jugador_original:
         partes = data.split('_')
@@ -338,17 +353,6 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             primeras_tres = sorted(all_skill_ids)[:3]
 
             skill = next((s for s in skills if str(s.get('id')) == str(skill_id)), None)
-            # Desbloqueo dinámico: si una de las 3 primeras llega a nivel 3, agrega la siguiente decena con nivel 0 (ej: 7010 -> 7040)
-            for base_skill in skills:
-                base_id = str(base_skill.get('id'))
-                if base_id in primeras_tres and base_skill['level'] >= 3:
-                    try:
-                        base_num = int(base_id)
-                        unlock_id = str(base_num + 30)
-                        if not any(str(s.get('id')) == unlock_id for s in skills):
-                            skills.append({'id': unlock_id, 'level': 0})  # Nivel 0 al desbloquear
-                    except Exception:
-                        pass
 
             # Lógica para incrementar habilidades
             if skill:
@@ -385,7 +389,12 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         )
                         return
 
-            resultado = getInfoPlayerBoost(player_id, jugador_original.get('rank', 0), jugador_original.get('level', 0), skill=skills)
+            resultado = getInfoPlayerBoost(
+                player_id,
+                jugador_original.get('rank', 0),
+                jugador_original.get('level', 0),
+                skill=[s for s in skills if s.get('level', 0) > 0]  # Solo habilidades con nivel > 0
+            )
 
             try:
                 player_data = resultado.get('playerData', {})
