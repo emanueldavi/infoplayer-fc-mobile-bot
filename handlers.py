@@ -239,6 +239,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         resultado = getInfoPlayerBoost(jugador_id, rank, level=nivel_num, skill=jugador_original.get('skillUpgrades', []))
         jugador_original['level'] = nivel_num  # Actualiza o agrega el nivel del jugador original
+        
         player_data = resultado.get('playerData', {})
         stats = player_data.get('avgStats', {})
         stats['stamina'] = player_data.get('stats', {}).get('sta', 0)
@@ -277,11 +278,29 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
             else:
                 raise    
-    elif data == 'ignore':
+    elif data == 'ignoreRank':
         await query.answer(
-            text="Solo es un botón decorativo.",
+            text="⚪️ = Rango Base\n"
+                f"🟢 = Rango Verde\n"
+                f"🔵 = Rango Azul\n"
+                f"🟣 = Rango Morado\n"
+                f"🔴 = Rango Rojo\n"
+                f"🟠 = Rango Naranja\n",
             show_alert=True
-            )
+        )
+        return
+    elif data == 'ignoreLevels':
+        await query.answer(
+            text="Los niveles de entrenamiento tienen límite para cada rango:\n"
+                "Rango ⚪️: Nivel 5\n"
+                "Rango 🟢: Nivel 10\n"
+                "Rango 🔵: Nivel 15\n"
+                "Rango 🟣: Nivel 20\n"
+                "Rango 🔴: Nivel 25\n"
+                "Rango 🟠: Nivel 30",
+            show_alert=True
+        )
+        return
     elif data.startswith('select_'):
         player_id = data.split('_')[1]
         players = context.user_data.get('player_search_results', [])
@@ -302,76 +321,71 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith('skillUnlock_'):
         player_id = data.split('_')[1]
         if player_id:
-            keyboard = []
-            skill = jugador_original.get('skillStyleSkills', 0)
-            upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
-            for skills in skill:
-                if skills.get('id'):
-                    skill_id = str(skills.get('id'))
-                    nivel = upgrades.get(skill_id, 0)
-                    texto_boton = f"{SKILLS.get(skill_id, skill_id)} ({nivel})"
-                    keyboard.append([
-                        InlineKeyboardButton(
-                            texto_boton,
-                            callback_data=f"skill_{player_id}_{skill_id}"
-                        )
-                    ])
-            keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            reply_markup = build_skill_keyboard(jugador_original, player_id)
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         else:
             await query.edit_message_text("No se pudo encontrar el jugador seleccionado.")
         return
-    
+
     elif data.startswith('skill_'):
         partes = data.split('_')
         player_id = partes[1]
         skill_id = partes[2] if len(partes) > 2 else None
         if player_id and skill_id:
             skills = jugador_original.get('skillUpgrades', [])
-            # Incluye la habilidad seleccionada en el cálculo de las 3 primeras
             all_skill_ids = set(str(s.get('id')) for s in skills if s.get('id') is not None)
             all_skill_ids.add(str(skill_id))
             primeras_tres = sorted(all_skill_ids)[:3]
 
             skill = next((s for s in skills if str(s.get('id')) == str(skill_id)), None)
-            if skill:
-                if str(skill_id) in primeras_tres:
-                    if skill['level'] < 3:
-                        skill['level'] += 1
-                else:
-                    if skill['level'] < 1:
-                        skill['level'] += 1
-            else:
-                # Solo agregar si no existe, respetando el límite inicial
-                if str(skill_id) in primeras_tres:
-                    skills.append({
-                        'id': skill_id,
-                        'level': 1
-                    })
-                else:
-                    skills.append({
-                        'id': skill_id,
-                        'level': 1
-                    })
-
-            # Desbloqueo dinámico: si una de las 3 primeras llega a nivel 3, desbloquea la siguiente decena (ej: 7010 -> 7040)
+            # Desbloqueo dinámico: si una de las 3 primeras llega a nivel 3, agrega la siguiente decena con nivel 0 (ej: 7010 -> 7040)
             for base_skill in skills:
                 base_id = str(base_skill.get('id'))
                 if base_id in primeras_tres and base_skill['level'] >= 3:
                     try:
                         base_num = int(base_id)
-                        unlock_id = str(base_num + 30)  # Siguiente decena (ej: 7010+30=7040)
-                        # Solo si no existe ya
+                        unlock_id = str(base_num + 30)
                         if not any(str(s.get('id')) == unlock_id for s in skills):
-                            skills.append({'id': unlock_id, 'level': 1})
+                            skills.append({'id': unlock_id, 'level': 0})  # Nivel 0 al desbloquear
                     except Exception:
                         pass
 
-            print(skills)
+            # Lógica para incrementar habilidades
+            if skill:
+                if str(skill_id) in primeras_tres:
+                    if skill['level'] < 3:
+                        skill['level'] += 1
+                else:
+                    # Solo permitir incrementar si la base tiene nivel 3
+                    base_id = str(int(skill_id) - 30)
+                    base_skill = next((s for s in skills if str(s.get('id')) == base_id), None)
+                    if base_skill and base_skill['level'] >= 3:
+                        if skill['level'] < 1:
+                            skill['level'] += 1
+                    else:
+                        await query.answer(
+                            text="Debes subir la habilidad base a nivel 3 para desbloquear esta habilidad.",
+                            show_alert=True
+                        )
+                        return
+            else:
+                # Solo agregar si no existe, respetando el límite inicial
+                if str(skill_id) in primeras_tres:
+                    skills.append({'id': skill_id, 'level': 1})
+                else:
+                    # Solo permitir agregar si la base tiene nivel 3
+                    base_id = str(int(skill_id) - 30)
+                    base_skill = next((s for s in skills if str(s.get('id')) == base_id), None)
+                    if base_skill and base_skill['level'] >= 3:
+                        skills.append({'id': skill_id, 'level': 1})
+                    else:
+                        await query.answer(
+                            text="Debes subir la habilidad base a nivel 3 para desbloquear esta habilidad.",
+                            show_alert=True
+                        )
+                        return
 
             resultado = getInfoPlayerBoost(player_id, jugador_original.get('rank', 0), jugador_original.get('level', 0), skill=skills)
-            print(resultado)
 
             try:
                 player_data = resultado.get('playerData', {})
@@ -381,6 +395,9 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'), skill=True)
                 await query.edit_message_text(mensaje, reply_markup=query.message.reply_markup, parse_mode="MarkdownV2")
+                # Actualiza el teclado de habilidades con los niveles actualizados
+                reply_markup = build_skill_keyboard(jugador_original, player_id)
+                await query.edit_message_reply_markup(reply_markup=reply_markup)
             except BadRequest as e:
                 if "Message is not modified" in str(e):
                     await query.answer(
@@ -414,3 +431,21 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         else:
             return
+
+def build_skill_keyboard(jugador_original, player_id):
+    keyboard = []
+    skill = jugador_original.get('skillStyleSkills', 0)
+    upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
+    for skills in skill:
+        if skills.get('id'):
+            skill_id = str(skills.get('id'))
+            nivel = upgrades.get(skill_id, 0)
+            texto_boton = f"{SKILLS.get(skill_id, skill_id)} ({nivel})"
+            keyboard.append([
+                InlineKeyboardButton(
+                    texto_boton,
+                    callback_data=f"skill_{player_id}_{skill_id}"
+                )
+            ])
+    keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
+    return InlineKeyboardMarkup(keyboard)

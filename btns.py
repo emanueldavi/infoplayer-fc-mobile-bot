@@ -10,7 +10,7 @@ def getButtonsE(playerId: str) -> list:
     """
     return [
         [
-            InlineKeyboardButton("Rangos", callback_data='ignore'),
+            InlineKeyboardButton("Rangos", callback_data='ignoreRank'),
         ],
         [
             InlineKeyboardButton("⚪️", callback_data=f'rank0_{playerId}'),
@@ -21,7 +21,7 @@ def getButtonsE(playerId: str) -> list:
             InlineKeyboardButton("🟠", callback_data=f'rank5_{playerId}'),
         ],
         [
-            InlineKeyboardButton("Entrenamientos", callback_data='ignore'),
+            InlineKeyboardButton("Entrenamientos", callback_data='ignoreLevels'),
         ],
         [
             InlineKeyboardButton("5", callback_data=f'level5_{playerId}'),
