@@ -1,7 +1,7 @@
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 from telegram import Bot
 import os
-from handlers import start, player, getcard , help_command, botones_callback, group_id
+from handlers import start, player , help_command, botones_callback, group_id
 import logging
 
 TOKEN = os.getenv("TOKEN")
@@ -23,7 +23,6 @@ def main():
     app.add_handler(CommandHandler('player', player))
     app.add_handler(CommandHandler('id', group_id))
     app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CommandHandler('getcard', getcard))
     app.add_handler(CallbackQueryHandler(botones_callback))
     app.add_error_handler(error_handler)
 

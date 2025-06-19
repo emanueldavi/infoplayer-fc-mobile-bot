@@ -32,7 +32,7 @@ def escalar_layout(layout, escala):
         for prop, val in v.items():
             if isinstance(val, (int, float)):
                 if 'fontSize' in prop:
-                    nuevo[k][prop] = int(val * escala * 0.9)
+                    nuevo[k][prop] = int(val * escala * 1.3)  # Usa 1.3 o más para fuentes grandes
                 else:
                     nuevo[k][prop] = int(val * escala)
             else:
@@ -158,6 +158,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=reply_markup
                 )
                 context.user_data['player_search_results'] = unicos
+                context.user_data['owner_id'] = update.effective_user.id  # <--- Guarda el dueño
             else:
                 await update.message.reply_text('No se encontraron jugadores con ese nombre.')
         else:
@@ -182,6 +183,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
+
+    owner_id = context.user_data.get('owner_id')
+    if owner_id and query.from_user.id != owner_id:
+        await query.answer(
+        text="⛔️ Solo el usuario que generó este mensaje puede usar estos botones.",
+        show_alert=True
+        )
+        return
     
     jugador_original = context.user_data.get('jugador_original')
     if data.startswith('rank') and jugador_original:
@@ -295,13 +304,21 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if player_id:
             keyboard = []
             skill = jugador_original.get('skillStyleSkills', 0)
+            upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
             for skills in skill:
                 if skills.get('id'):
-                    keyboard.append([InlineKeyboardButton(SKILLS.get(str(skills.get('id')), skills.get('id')), callback_data=f"skill_{player_id}_{skills.get('id')}")])
+                    skill_id = str(skills.get('id'))
+                    nivel = upgrades.get(skill_id, 0)
+                    texto_boton = f"{SKILLS.get(skill_id, skill_id)} ({nivel})"
+                    keyboard.append([
+                        InlineKeyboardButton(
+                            texto_boton,
+                            callback_data=f"skill_{player_id}_{skill_id}"
+                        )
+                    ])
             keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_reply_markup(reply_markup=reply_markup)     
-            # await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
         else:
             await query.edit_message_text("No se pudo encontrar el jugador seleccionado.")
         return
@@ -337,6 +354,20 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         'id': skill_id,
                         'level': 1
                     })
+
+            # Desbloqueo dinámico: si una de las 3 primeras llega a nivel 3, desbloquea la siguiente decena (ej: 7010 -> 7040)
+            for base_skill in skills:
+                base_id = str(base_skill.get('id'))
+                if base_id in primeras_tres and base_skill['level'] >= 3:
+                    try:
+                        base_num = int(base_id)
+                        unlock_id = str(base_num + 30)  # Siguiente decena (ej: 7010+30=7040)
+                        # Solo si no existe ya
+                        if not any(str(s.get('id')) == unlock_id for s in skills):
+                            skills.append({'id': unlock_id, 'level': 1})
+                    except Exception:
+                        pass
+
             print(skills)
 
             resultado = getInfoPlayerBoost(player_id, jugador_original.get('rank', 0), jugador_original.get('level', 0), skill=skills)
@@ -361,10 +392,10 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     raise
             except AttributeError as e:
                 if "'str' object has no attribute 'get'" in str(e):
-                    if jugador_original.get('skillUpgrades', 0) > 0:
-                        await query.edit_message_text(
-                            "Has aplicado todas las habilidades al jugador.",
-                            parse_mode="MarkdownV2"
+                    if len(jugador_original.get('skillUpgrades', [])) > 0:
+                        await query.answer(
+                            text="Has aplicado todas las habilidades disponibles para este jugador.",
+                            show_alert=True
                         )
                     else:
                         await query.answer(
@@ -383,107 +414,3 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         else:
             return
-
-# Función para descargar imágenes desde una URL
-def descargar_imagen(url, size=None):
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content)).convert("RGBA")
-    if size:
-        img = img.resize(size, Image.LANCZOS)
-    return img
-
-# Función para descargar la fuente desde una URL y devolver un objeto ImageFont
-def descargar_fuente(url, size):
-    response = requests.get(url)
-    font_bytes = BytesIO(response.content)
-    return ImageFont.truetype(font_bytes, size)
-
-# Comando getcard
-async def getcard(update: Update, context):
-    if not context.args:
-        await update.message.reply_text("Debes escribir el nombre del jugador. Ejemplo: /getcard Lamine Yamal")
-        return
-
-    nombre = " ".join(context.args)
-    # Aquí deberías buscar el jugador en tu base de datos o API
-    # Para el ejemplo, usaremos datos simulados (puedes reemplazar esto por tu función real)
-    datos_jugador = searchPlayer(nombre).get('players', [])[0] 
-    print(datos_jugador) # <-- Implementa esta función según tu sistema
-
-    if not datos_jugador:
-        await update.message.reply_text("No se encontró el jugador.")
-        return
-
-    # Layout y datos
-    layout = escalar_layout(datos_jugador["animation"]["layout"], ESCALA)  # <-- Aplica el escalado aquí
-    images = datos_jugador["images"]
-    colors = datos_jugador["animation"]["colors"]
-
-    # Descarga la fuente (puedes cambiar la URL por la que prefieras)
-    url_fuente = "https://github.com/google/fonts/raw/main/ofl/roboto/Roboto-Bold.ttf"
-    try:
-        font_rating = descargar_fuente(url_fuente, layout["rating"]["fontSize"])
-        font_position = descargar_fuente(url_fuente, layout["position"]["fontSize"])
-        font_name = descargar_fuente(url_fuente, layout["name"]["fontSize"])
-    except Exception:
-        font_rating = font_position = font_name = ImageFont.load_default()
-
-    # Imagen base grande
-    base = descargar_imagen(images["playerCardBackground"], (256 * ESCALA, 256 * ESCALA))
-
-    # Player image
-    player_img = descargar_imagen(images["playerCardImage"], (layout["player"]["sizeX"], layout["player"]["sizeY"]))
-    base.paste(player_img, (layout["player"]["posX"], layout["player"]["posY"]), player_img)
-
-    # Flag (nation)
-    flag_img = descargar_imagen(images["flagImage"], (layout["nation"]["sizeX"], layout["nation"]["sizeY"]))
-    base.paste(flag_img, (layout["nation"]["posX"], layout["nation"]["posY"]), flag_img)
-
-    # Club
-    club_img = descargar_imagen(images["clubImage"], (layout["club"]["sizeX"], layout["club"]["sizeY"]))
-    base.paste(club_img, (layout["club"]["posX"], layout["club"]["posY"]), club_img)
-
-    # League
-    league_img = descargar_imagen(images["leagueImage"], (layout["league"]["sizeX"], layout["league"]["sizeY"]))
-    base.paste(league_img, (layout["league"]["posX"], layout["league"]["posY"]), league_img)
-
-    draw = ImageDraw.Draw(base)
-
-    # Rating (centrado)
-    rating_text = str(datos_jugador["rating"])
-    bbox = draw.textbbox((0, 0), rating_text, font=font_rating)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
-    rating_x = layout["rating"]["posX"] + (layout["rating"]["sizeX"] - w) // 2
-    rating_y = layout["rating"]["posY"]
-    draw.text((rating_x, rating_y), rating_text, font=font_rating, fill=colors["rating"])
-
-    # Position (centrado)
-    pos_text = datos_jugador["position"]
-    bbox = draw.textbbox((0, 0), pos_text, font=font_position)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
-    pos_x = layout["position"]["posX"] + (layout["position"]["sizeX"] - w) // 2
-    pos_y = layout["position"]["posY"]
-    draw.text((pos_x, pos_y), pos_text, font=font_position, fill=colors["position"])
-
-    # Name (centrado)
-    name_text = datos_jugador["commonName"]
-    bbox = draw.textbbox((0, 0), name_text, font=font_name)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
-    name_x = layout["name"]["posX"] - w // 2
-    name_y = int(layout["name"]["posY"])
-    draw.text((name_x, name_y), name_text, font=font_name, fill=colors["name"])
-
-    # Puedes agregar más detalles visuales aquí (nivel, rango, bordes, etc.)
-
-    buffer = BytesIO()
-    buffer.name = "card.png"
-    base.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    await update.message.reply_photo(photo=buffer, caption=f"Tarjeta de {datos_jugador['commonName']}")
-
-# Agrega el handler en tu main.py:
-# app.add_handler(CommandHandler('getcard', getcard))
