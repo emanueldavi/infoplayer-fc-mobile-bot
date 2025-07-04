@@ -3,6 +3,9 @@ from telegram import Bot
 import os
 from handlers import start, player , help_command, botones_callback, group_id
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 GROUP_ID = os.getenv("GROUP_ID")
