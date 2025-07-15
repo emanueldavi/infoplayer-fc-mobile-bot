@@ -37,6 +37,11 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
         nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}"
     nombre = escape_markdown(nombre)
 
+    if jugador.get('auctionable'):
+        price = '{:,}'.format(jugador.get('priceData', 'N/A')[str(rango)]['basePrice'])
+    else:
+        price = 'Intransferible'
+
     if posicion == "GK":
         mensaje = (
             f"👤 *Nombre*: {nombre}\n"
@@ -45,9 +50,11 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
+            f"💰 *Precio*: {price}\n"
             f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
             f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
             f"📏 *Altura*: {jugador.get('height', 'N/A')}cm\n"
+
             f"\n"
             f"📊 *Estadísticas*:\n"
             f"🧤 *Estirada*: {stats.get('avg1', 'N/A')}\n"
@@ -65,6 +72,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
+            f"💰 *Precio*: {price}\n"
             f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
             f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
             f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
