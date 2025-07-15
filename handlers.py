@@ -1,16 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
-from scraper import searchPlayer, getInfoPlayerBoost
+from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes
 from str import POSICIONES_ES, RANK_ES, SKILLS
 from btns import getButtonsE
 import re
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-import requests
-import os
 
-ESCALA = 4  # Escala para mayor calidad (ajusta según lo que necesites)
 
 def escape_markdown(text, code=False):
     """
@@ -24,20 +19,6 @@ def escape_markdown(text, code=False):
     else:
         # Escapa todos excepto * _ ` para permitir negrita/cursiva/monoespaciado
         return re.sub(r'([\\{}\[\]()#+\-.!|>~=])', r'\\\1', str(text))
-
-def escalar_layout(layout, escala):
-    nuevo = {}
-    for k, v in layout.items():
-        nuevo[k] = {}
-        for prop, val in v.items():
-            if isinstance(val, (int, float)):
-                if 'fontSize' in prop:
-                    nuevo[k][prop] = int(val * escala * 1.3)  # Usa 1.3 o más para fuentes grandes
-                else:
-                    nuevo[k][prop] = int(val * escala)
-            else:
-                nuevo[k][prop] = val
-    return nuevo
 
 def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     posicion = jugador.get('position', 'N/A')
@@ -102,6 +83,24 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     reply_markup = InlineKeyboardMarkup(keyboard)
     return mensaje, reply_markup
 
+def build_skill_keyboard(jugador_original, player_id):
+    keyboard = []
+    skill = jugador_original.get('skillStyleSkills', 0)
+    upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
+    for skills in skill:
+        if skills.get('id'):
+            skill_id = str(skills.get('id'))
+            nivel = upgrades.get(skill_id, 0)
+            texto_boton = f"{SKILLS.get(skill_id, skill_id)} ({nivel})"
+            keyboard.append([
+                InlineKeyboardButton(
+                    texto_boton,
+                    callback_data=f"skill_{player_id}_{skill_id}"
+                )
+            ])
+    keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
+    return InlineKeyboardMarkup(keyboard)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         escape_markdown(
@@ -110,6 +109,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
         parse_mode="MarkdownV2"
     )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mensaje = (
+        "Comandos disponibles:\n"
+        "/start - Mensaje de bienvenida\n"
+        "/player <nombre> - Busca un jugador por nombre\n"
+        "/help - Muestra esta ayuda"
+    )
+    await update.message.reply_text(mensaje)
 
 async def group_id(update: Update, context):
     chat_id = update.effective_chat.id
@@ -123,48 +131,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             players = resultado['players']
             if players:
                 # Agrupar por (bindingXml, playerId) y mostrar solo el transferible si existe, si no el primero
-                cartas_dict = {}
-                for jugador in players:
-                    binding = jugador.get('bindingXml')
-                    player_id = jugador.get('playerId')
-                    grl = jugador.get('rating')  # <-- Añadido
-                    if not binding or not player_id:
-                        continue
-                    clave = (binding, player_id, grl)  # <-- Incluye el GRL en la clave
-                    if clave not in cartas_dict:
-                        cartas_dict[clave] = []
-                    cartas_dict[clave].append(jugador)
-                unicos = []
-                for grupo in cartas_dict.values():
-                    transferibles = [j for j in grupo if j.get('auctionable', False)]
-                    if transferibles:
-                        unicos.append(transferibles[0])
-                    else:
-                        unicos.append(grupo[0])
-                # Mostrar los primeros 10 jugadores únicos como botones
-                keyboard = []
-                for jugador in unicos[:10]:
-                    program = jugador.get('source', 'N/A').split('_')
-                    program = program[1] if len(program) > 1 else program[0]
-                    nombre = jugador.get('commonName')
-                    if not nombre:
-                        nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
-                    texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {nombre}, {jugador.get('rating', 'N/A')} {program}"
-                    player_asset_id = jugador.get('assetId')
-                    keyboard.append([InlineKeyboardButton(texto, callback_data=f"select_{player_asset_id}")])
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                msg = await update.message.reply_text(
-                    "Selecciona el jugador que buscas:",
-                    reply_markup=reply_markup
-                )
-                context.chat_data[msg.message_id] = {
-                    'player_search_results': unicos,
-                    'owner_id': update.effective_user.id,
-                    # ...otros datos necesarios...
-                }
-                
-                context.user_data['player_search_results'] = unicos
-                context.user_data['owner_id'] = update.effective_user.id  # <--- Guarda el dueño
+                await showPlayer(update, context, players)
             else:
                 await update.message.reply_text('No se encontraron jugadores con ese nombre.')
         else:
@@ -177,19 +144,113 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             parse_mode="MarkdownV2"
         )
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mensaje = (
-        "Comandos disponibles:\n"
-        "/start - Mensaje de bienvenida\n"
-        "/player <nombre> - Busca un jugador por nombre\n"
-        "/help - Muestra esta ayuda"
-    )
+
+async def top10_command(update, context):
+    chat_id = update.effective_chat.id
+    if not context.args:
+        await update.message.reply_text("Ejemplo: /top10 ST")
+        return
+    pos = context.args[0].upper()
+    lista = TOP10.get(chat_id, {}).get(pos, [])
+    if not lista:
+        await update.message.reply_text(f"No hay jugadores en el Top 10 de {pos}.")
+        return
+
+    mensaje = f"🏆 Top 10 {POSICIONES_ES.get(pos, pos)}:\n\n"
+    for idx, jugador in enumerate(lista, 1):
+        nombre = jugador.get('commonName') or f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
+        grl = jugador.get('rating', 'N/A')
+        evento = jugador.get('source', 'N/A').split('_')
+        evento = evento[1] if len(evento) > 1 else evento[0]
+        pierna_mala = jugador.get('weakFoot', 'N/A')
+        skills = jugador.get('skillMovesLevel', 'N/A')
+        mensaje += (
+            f"{idx}. {nombre} | GRL: {grl} | Skills: {skills}⭐ | Pierna mala: {pierna_mala}⭐ | Evento: {evento}\n"
+        )
+
     await update.message.reply_text(mensaje)
+
+async def redeemCodes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = getRedeemCodes()
+    # Filtra los códigos que NO están expirados
+    disponibles = [c for c in data if c.get("isExpired") is False]
+    if disponibles:
+        mensaje = "Códigos Activos:\n"
+        for c in disponibles:
+            mensaje += (
+                f"🔹 {c['code']}\n"
+                f"Recompensa: {c['reward']}\n" 
+                f"Expira: {c['expired']})\n"
+                
+        )
+        # Agrega un botón de link (puedes personalizar la URL)
+        keyboard = [
+            [InlineKeyboardButton("Canjear aquí", url="https://redeem.fcm.ea.com/")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(mensaje, reply_markup=reply_markup)
+        
+    else:
+        mensaje = "❌ No hay códigos disponibles actualmente.\n\n"
+        if data:
+            ultimo = data[0]
+            mensaje += (
+                f"Último código activo:\n"
+                f"🔹 {ultimo['code']}\n"
+                f"Recompensa: {ultimo['reward']}\n"
+                f"Expirado: {ultimo['expired']}\n"
+            )       
+        await update.message.reply_text(mensaje)
+
+async def showPlayer(update, context, players, callback_prefix="select_"):
+    # Agrupa y filtra jugadores únicos (igual que en player)
+    cartas_dict = {}
+    for jugador in players:
+        binding = jugador.get('bindingXml')
+        player_id = jugador.get('playerId')
+        grl = jugador.get('rating')
+        if not binding or not player_id:
+            continue
+        clave = (binding, player_id, grl)
+        if clave not in cartas_dict:
+            cartas_dict[clave] = []
+        cartas_dict[clave].append(jugador)
+    unicos = []
+    for grupo in cartas_dict.values():
+        transferibles = [j for j in grupo if j.get('auctionable', False)]
+        if transferibles:
+            unicos.append(transferibles[0])
+        else:
+            unicos.append(grupo[0])
+    # Botones
+    keyboard = []
+    for jugador in unicos[:10]:
+        program = jugador.get('source', 'N/A').split('_')
+        program = program[1] if len(program) > 1 else program[0]
+        nombre = jugador.get('commonName')
+        if not nombre:
+            nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
+        texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {nombre}, {jugador.get('rating', 'N/A')} {program}"
+        player_asset_id = jugador.get('assetId')
+        keyboard.append([InlineKeyboardButton(texto, callback_data=f"{callback_prefix}{player_asset_id}")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    msg = await update.message.reply_text(
+        "Selecciona el jugador que buscas:",
+        reply_markup=reply_markup
+    )
+    # Guarda resultados para el callback
+    context.chat_data[msg.message_id] = {
+        'player_search_results': unicos,
+        'owner_id': update.effective_user.id,
+    }
+    context.user_data['player_search_results'] = unicos
+    context.user_data['owner_id'] = update.effective_user.id
 
 async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
     msg_id = query.message.message_id
+    chat_id = query.message.chat.id
 
     datos = context.chat_data.get(msg_id)
     if not datos:
@@ -441,20 +502,3 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             return
 
-def build_skill_keyboard(jugador_original, player_id):
-    keyboard = []
-    skill = jugador_original.get('skillStyleSkills', 0)
-    upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
-    for skills in skill:
-        if skills.get('id'):
-            skill_id = str(skills.get('id'))
-            nivel = upgrades.get(skill_id, 0)
-            texto_boton = f"{SKILLS.get(skill_id, skill_id)} ({nivel})"
-            keyboard.append([
-                InlineKeyboardButton(
-                    texto_boton,
-                    callback_data=f"skill_{player_id}_{skill_id}"
-                )
-            ])
-    keyboard.append([InlineKeyboardButton("Volver", callback_data=f"backToMainMenu_{player_id}")])
-    return InlineKeyboardMarkup(keyboard)

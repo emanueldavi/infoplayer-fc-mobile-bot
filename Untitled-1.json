@@ -1,0 +1,375 @@
+{
+  "assetId": 24020111,
+  "playerId": 277643,
+  "firstName": "Lamine",
+  "lastName": "Yamal",
+  "commonName": "Lamine Yamal",
+  "cardName": "Lamine Yamal",
+  "position": "RW",
+  "rating": 108,
+  "weakFoot": 4,
+  "foot": 2,
+  "source": "PROGRAM_TOTS25",
+  "workRateAtt": 2,
+  "workRateDef": 0,
+  "weight": 65,
+  "height": 180,
+  "birthday": "2007-07-13T00:00:00Z",
+  "bio": "biotxt_24019700",
+  "bindingXml": "PLAYERCARDUI_TOTS25_LIVEHIGH_B",
+  "animation": {
+    "cardData": [
+      "background",
+      "player",
+      "rating",
+      "position",
+      "nation",
+      "league",
+      "club",
+      "name",
+      "level",
+      "rank"
+    ],
+    "colors": {
+      "rating": "#FFFFFF",
+      "position": "#FFFFFF",
+      "name": "#FFFFFF",
+      "level": "#FFFFFF"
+    },
+    "layout": {
+      "player": {
+        "sizeX": 256,
+        "sizeY": 256,
+        "posX": 0,
+        "posY": 0
+      },
+      "rating": {
+        "sizeX": 80,
+        "sizeY": 80,
+        "posX": 36,
+        "posY": 4,
+        "fontSize": 36
+      },
+      "position": {
+        "sizeX": 40,
+        "sizeY": 20,
+        "posX": 56,
+        "posY": 64,
+        "fontSize": 24
+      },
+      "nation": {
+        "sizeX": 24,
+        "sizeY": 24,
+        "posX": 64,
+        "posY": 188
+      },
+      "club": {
+        "sizeX": 24,
+        "sizeY": 24,
+        "posX": 168,
+        "posY": 188
+      },
+      "league": {
+        "sizeX": 24,
+        "sizeY": 24,
+        "posX": 116,
+        "posY": 188
+      },
+      "name": {
+        "sizeX": 0,
+        "sizeY": 0,
+        "posX": 128,
+        "posY": 177.833,
+        "fontSize": 22
+      },
+      "level": {
+        "sizeX": 64,
+        "sizeY": 32,
+        "posX": 128,
+        "posY": 233,
+        "fontSize": 23
+      },
+      "rank": {
+        "sizeX": 32,
+        "sizeY": 32,
+        "posX": 128,
+        "posY": 232
+      }
+    },
+    "animations": [
+      {
+        "animations": [
+          {
+            "id": "1eLVAh",
+            "image": "https://renderz.app/image-cdn/sprite_23_tots25_B_TOTS25_LIVEHIGH_LOOP/normal",
+            "imageName": "tots25_B_TOTS25_LIVEHIGH_LOOP",
+            "imageHeight": 0,
+            "imageWidth": 0,
+            "maxFrames": 45
+          }
+        ],
+        "when": "#cardSize == ~Constants.CARD_PICTURE_BIG_SIZE || (#cardSize == ~Constants.CARD_PICTURE_MEDIUM_SIZE && #UILevel != 0)"
+      }
+    ]
+  },
+  "tags": "TOTS25,TOTS25_ALL_FREE,TOTS25_LIVE_FREE,TOTS25_E_FREE,S_24,CLUB,BASEOVR_108,RANK_ATT,no_auction,24020111,ZEROWEIGHTEDPLAYER",
+  "skillStyleId": 90,
+  "skillStyleSkills": [
+    {
+      "id": 9010,
+      "name": "NAME_SKILL_9010",
+      "image": "https://renderz.app/image-cdn/skill_PASSING_0/normal"
+    },
+    {
+      "id": 9020,
+      "name": "NAME_SKILL_9020",
+      "image": "https://renderz.app/image-cdn/skill_DEXTERITY_0/normal"
+    },
+    {
+      "id": 9030,
+      "name": "NAME_SKILL_9030",
+      "image": "https://renderz.app/image-cdn/skill_DRIBBLING_0/normal"
+    },
+    {
+      "id": 9040,
+      "name": "NAME_SKILL_9040",
+      "image": "https://renderz.app/image-cdn/skill_PLAYMAKER_0/normal"
+    },
+    {
+      "id": 9050,
+      "name": "NAME_SKILL_9050",
+      "image": "https://renderz.app/image-cdn/skill_RAUMDEUTER_0/normal"
+    },
+    {
+      "id": 9060,
+      "name": "NAME_SKILL_9060",
+      "image": "https://renderz.app/image-cdn/skill_INVERTED_WINGER_0/normal"
+    }
+  ],
+  "images": {
+    "playerCardImage": "https://renderz.app/image-cdn/player_24_277643_TOTS25_LIVE_3602be17dfe4b2f0/normal",
+    "playerCardBackground": "https://renderz.app/image-cdn/bg_23_B_TOTS25_LIVEHIGH_STATIC/normal",
+    "flagImage": "https://renderz.app/image-cdn/flags_23_128x128_45/normal",
+    "clubImage": "https://renderz.app/image-cdn/club_23_241/normal",
+    "leagueImage": "https://renderz.app/image-cdn/league_23_53/normal"
+  },
+  "skillMoves": {
+    "id": 13,
+    "title": "skillmove_name_13",
+    "description": "skillmove_desc_13",
+    "image": "https://renderz.app/image-cdn/skillmovelogo_23_0/normal"
+  },
+  "skillMovesLevel": 4,
+  "celebration": {
+    "id": 67,
+    "title": "celebration_name_67",
+    "description": "celebration_desc_0",
+    "image": "https://renderz.app/image-cdn/celebrationlogo_23_0/normal"
+  },
+  "traits": [
+    {
+      "id": 13,
+      "title": "trait_name_13",
+      "description": "trait_desc_13",
+      "image": "https://renderz.app/image-cdn/traitlogo_23_13/normal"
+    },
+    {
+      "id": 14,
+      "title": "trait_name_14",
+      "description": "trait_desc_14",
+      "image": "https://renderz.app/image-cdn/traitlogo_23_14/normal"
+    },
+    {
+      "id": 25,
+      "title": "trait_name_25",
+      "description": "trait_desc_25",
+      "image": "https://renderz.app/image-cdn/traitlogo_23_25/normal"
+    }
+  ],
+  "club": {
+    "id": 241,
+    "name": "TeamName_241"
+  },
+  "league": {
+    "id": 53,
+    "name": "LeagueName_53"
+  },
+  "nation": {
+    "id": 45,
+    "name": "NationName_45"
+  },
+  "potentialPositions": [
+    "LW"
+  ],
+  "avgStats": {
+    "avg1": 127,
+    "avg2": 114,
+    "avg3": 111,
+    "avg4": 127,
+    "avg5": 35,
+    "avg6": 78
+  },
+  "avgGkStats": {
+    "avg1": 9,
+    "avg2": 10,
+    "avg3": 13,
+    "avg4": 7,
+    "avg5": 7,
+    "avg6": 122
+  },
+  "stats": {
+    "acc": 129,
+    "agg": 80,
+    "agi": 134,
+    "awr": 23,
+    "bac": 129,
+    "bal": 105,
+    "cro": 114,
+    "cur": 120,
+    "dri": 131,
+    "fin": 120,
+    "frk": 90,
+    "gkd": 9,
+    "gkk": 7,
+    "gkp": 10,
+    "han": 13,
+    "hea": 77,
+    "jmp": 79,
+    "lpa": 113,
+    "lsa": 123,
+    "mrk": 31,
+    "pen": 90,
+    "pos": 108,
+    "rea": 126,
+    "ref": 7,
+    "sho": 110,
+    "slt": 28,
+    "spa": 115,
+    "spd": 126,
+    "str": 78,
+    "stt": 32,
+    "vis": 109,
+    "vol": 95,
+    "sta": 81,
+    "total": 2742
+  },
+  "liveOvr": {
+    "ovrUpgrade": 0
+  },
+  "priceData": {
+    "1": {
+      "basePrice": 2780000000
+    },
+    "2": {
+      "basePrice": 3610000000
+    },
+    "3": {
+      "basePrice": 4690000000
+    },
+    "4": {
+      "basePrice": 6310000000
+    },
+    "5": {
+      "basePrice": 6360000000
+    }
+  },
+  "auctionable": false,
+  "rank": 0,
+  "likes": 0,
+  "added": "2025-05-28T12:39:56.324122Z",
+  "revealOn": "2025-05-28T12:00:00Z"
+},
+{
+  "playerData": {
+    "rating": 111,
+    "level": 0,
+    "rank": 4,
+    "skillUpgrades": [
+      {
+        "id": 9020,
+        "level": 3
+      }
+    ],
+    "stats": {
+      "acc": 137,
+      "agg": 65,
+      "agi": 142,
+      "awr": 44,
+      "bac": 127,
+      "bal": 120,
+      "cro": 107,
+      "cur": 119,
+      "dri": 128,
+      "fin": 119,
+      "frk": 108,
+      "gkd": 6,
+      "gkk": 15,
+      "gkp": 14,
+      "han": 11,
+      "hea": 75,
+      "jmp": 97,
+      "lpa": 116,
+      "lsa": 122,
+      "mrk": 23,
+      "pen": 96,
+      "pos": 113,
+      "rea": 138,
+      "ref": 8,
+      "sho": 110,
+      "slt": 25,
+      "spa": 112,
+      "spd": 114,
+      "str": 98,
+      "stt": 45,
+      "vis": 117,
+      "vol": 105,
+      "sta": 80,
+      "total": 2856
+    },
+    "totalStats": 2856,
+    "totalAvgStats": 610,
+    "avgStats": {
+      "avg1": 125,
+      "avg2": 115,
+      "avg3": 113,
+      "avg4": 131,
+      "avg5": 39,
+      "avg6": 87
+    },
+    "images": {
+      "playerCardImage": "https://renderz.app/image-cdn/player_24_158023_TOTY25_HM_2_9f52fc5f7c360868/normal",
+      "playerCardBackground": "https://renderz.app/image-cdn/bg_23_B_TOTY25_LIVE_HM_STATIC/normal"
+    }
+  },
+  "upgradeData": {
+    "upgradedSkillStats": [
+      "ACC",
+      "REA",
+      "AGI"
+    ]
+  }
+}
+
+
+👤 Nombre: Lionel Messi
+
+Información de la Carta:
+#⃣ GRL: 107
+📊 Rango: Base
+⚓️ Posición: ED
+🦵🏻Pierna hábil: Izquierda
+👣 Pierna mala: 5
+⭐️ Filigranas: 4
+🪄 Posiciones Secundarias: DEL, MCO
+
+📊 Estadísticas:
+⚡️ Velocidad: 118
+🎯 Disparo: 115
+⚽️ Pase: 113
+💥 Regate: 125
+🛡 Defensa: 39
+💪🏻 Físico: 87
+# {
+              #   "id": 9020,
+              #   "level": 3
+              # }

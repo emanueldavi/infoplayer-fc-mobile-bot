@@ -43,7 +43,7 @@ def main():
     app.add_error_handler(error_handler)
 
     # Enviar mensaje al creador al iniciar
-    async def notificar_creador(chat_id=None):
+    async def notificar_creador(chat_id=None): 
         bot = Bot(TOKEN)
         try:
             if chat_id is None:
