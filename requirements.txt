@@ -3,4 +3,4 @@ httpx
 requests
 beautifulsoup4
 pillow
-
+python-dotenv
