@@ -37,7 +37,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
         nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}"
     nombre = escape_markdown(nombre)
 
-    if jugador.get('auctionable') and jugador.get('priceData')['0']:
+    if jugador.get('auctionable') and jugador.get('priceData'):
         price = '{:,}'.format(jugador.get('priceData', 'N/A')[str(rango)]['basePrice'])
     else:
         price = 'Intransferible'
