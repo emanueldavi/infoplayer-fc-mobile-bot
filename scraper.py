@@ -86,7 +86,6 @@ def getInfoPlayerBoost(id, data, level=None, skill=None):
           },
           "playerId": id
         }
-        print(data)
         response = requests.post(url, json=data)
         if response.status_code == 200:
             return response.json()

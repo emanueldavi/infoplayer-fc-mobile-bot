@@ -1,8 +1,8 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes
-from str import POSICIONES_ES, RANK_ES, SKILLS
+from str import POSICIONES_ES, RANK_ES, SKILLS, WORK_ES
 from btns import getButtonsE
 import re
 
@@ -37,8 +37,14 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
         nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}"
     nombre = escape_markdown(nombre)
 
-    if jugador.get('auctionable'):
-        price = '{:,}'.format(jugador.get('priceData', 'N/A')[str(rango)]['basePrice'])
+    if jugador.get('auctionable') and jugador.get('priceData'):
+        rango_str = str(rango)
+        price_info = jugador['priceData'].get(rango_str)
+
+        if price_info and 'basePrice' in price_info:
+            price = '{:,}'.format(price_info['basePrice'])
+        else:
+            price = '\-'
     else:
         price = 'Intransferible'
 
@@ -76,6 +82,8 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
             f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
             f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
+            f"⚖️ *Rendimiento ⚽️/🛡️*: {WORK_ES.get(str(jugador.get('workRateAtt', 'N/A')))}/{WORK_ES.get(str(jugador.get('workRateDef', 'N/A')))}\n"
+
             f"🪄 *Posiciones Secundarias*: {posiciones_secundarias_str}\n"
             f"\n"
             f"📊 *Estadísticas*:\n"
@@ -117,6 +125,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
         parse_mode="MarkdownV2"
     )
+
+# reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Abrir Web", web_app=WebAppInfo(url='https://possession-hong-mercy-future.trycloudflare.com'))]])
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = (
@@ -510,3 +520,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             return
 
+
+# async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     data = update.message.web_app_data.data
+#     await update.message.reply_text(f"📩 Datos recibidos desde la miniapp:\n`{data}`", parse_mode="MarkdownV2")

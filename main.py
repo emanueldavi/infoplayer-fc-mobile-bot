@@ -1,4 +1,4 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import Bot
 import os
 from handlers import start, player , help_command, botones_callback, group_id, redeemCodes
@@ -45,6 +45,7 @@ async def notificar_parada():
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
+    # app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('player', player))
     app.add_handler(CommandHandler('code', redeemCodes))

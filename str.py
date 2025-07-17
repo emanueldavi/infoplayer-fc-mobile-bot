@@ -17,6 +17,12 @@ POSICIONES_ES = {
     # Agrega más si necesitas
 }
 
+WORK_ES = {
+    "2": "Alto",
+    "1": "Bajo",
+    "0": "Medio",
+}
+
 RANK_ES = {
     "0": "Base",
     "1": "Verde",
