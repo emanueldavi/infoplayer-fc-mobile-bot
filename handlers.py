@@ -40,7 +40,6 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     if jugador.get('auctionable') and jugador.get('priceData'):
         rango_str = str(rango)
         price_info = jugador['priceData'].get(rango_str)
-
         if price_info and 'basePrice' in price_info:
             price = '{:,}'.format(price_info['basePrice'])
         else:
