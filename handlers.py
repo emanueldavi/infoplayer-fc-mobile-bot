@@ -1,10 +1,13 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
-from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes
-from str import POSICIONES_ES, RANK_ES, SKILLS, WORK_ES
+from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
+from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
 import re
+import json
+
+SKILLS = {}
 
 
 def escape_markdown(text, code=False):
@@ -80,6 +83,8 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"💰 *Precio*: {price}\n"
             f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
             f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
+            f"📏 *Altura*: {jugador.get('height', 'N/A')}cm\n"
+
             f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
             f"⚖️ *Rendimiento ⚽️/🛡️*: {WORK_ES.get(str(jugador.get('workRateAtt', 'N/A')))}/{WORK_ES.get(str(jugador.get('workRateDef', 'N/A')))}\n"
 
@@ -99,6 +104,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     return mensaje, reply_markup
 
 def build_skill_keyboard(jugador_original, player_id):
+    print(SKILLS)
     keyboard = []
     skill = jugador_original.get('skillStyleSkills', 0)
     upgrades = {str(s.get('id')): s.get('level', 0) for s in jugador_original.get('skillUpgrades', [])}
@@ -122,10 +128,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "_*¡Bienvenido al mejor bot de FC MOBILE en Telegram! Usando mis comandos podrás obtener la información sobre los jugadores del juego, como sus estadísticas, GRL, entre otras cosas.*_\n\n"
             "_*Envía /help para ver los comandos disponibles.*_"
         ),
-        parse_mode="MarkdownV2"
+        parse_mode="MarkdownV2",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Abrir Web", web_app=WebAppInfo(url='https://mappemanuel.loca.lt/'))]])
     )
-
-# reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Abrir Web", web_app=WebAppInfo(url='https://possession-hong-mercy-future.trycloudflare.com'))]])
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = (
@@ -405,6 +410,8 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 stats = jugador.get('avgStats', {})
                 stats['stamina'] = jugador.get('stats', {}).get('sta', 0)
+            global SKILLS
+            SKILLS = getSkillsName(jugador.get('assetId'), jugador.get('skillStyleSkills', []))
             context.user_data['jugador_original'] = jugador
             mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
             await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
@@ -518,8 +525,3 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         else:
             return
-
-
-# async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     data = update.message.web_app_data.data
-#     await update.message.reply_text(f"📩 Datos recibidos desde la miniapp:\n`{data}`", parse_mode="MarkdownV2")

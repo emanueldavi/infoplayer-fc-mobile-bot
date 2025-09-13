@@ -4,3 +4,8 @@
 
 __pycache__/
 
+__pycache__/handlers.cpython-313.pyc
+__pycache__/scraper.cpython-313.pyc
+__pycache__/str.cpython-313.pyc
+habilidades/main.py
+fc-player-stats.code-workspace

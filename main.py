@@ -1,5 +1,6 @@
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from telegram import Bot
+from telegram import Bot, Update
+from telegram.ext import ContextTypes
 import os
 from handlers import start, player , help_command, botones_callback, group_id, redeemCodes
 import logging
@@ -43,9 +44,18 @@ async def notificar_parada():
     except Exception as e:
         print(f"Error enviando mensaje de parada al creador: {e}")
 
+async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = update.effective_message.web_app_data.data
+    user = update.effective_user
+    print(update)
+    # Aquí puedes procesar los datos recibidos desde la mini app
+    print(f"Datos recibidos de la mini app: {data}")
+    await update.effective_message.reply_text(
+        f"¡Recibido desde la mini app!\nUsuario: {user.first_name}\nDatos: {data}"
+    )
+
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
-    # app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('player', player))
     app.add_handler(CommandHandler('code', redeemCodes))

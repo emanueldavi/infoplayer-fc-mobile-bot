@@ -1,6 +1,27 @@
 import requests
 from bs4 import BeautifulSoup
 
+def getStringSkills(id, url):
+    cookies = {'locale': 'es-ES'}  # Cambia 'language' por el nombre real de la cookie si es diferente
+    respuesta = requests.get(f'https://renderz.app/24/player/{id}', cookies=cookies)
+    respuesta.encoding = 'utf-8'  # Asegura que la respuesta se decodifique correctamente
+    soup = BeautifulSoup(respuesta.text, 'html.parser')
+    img = soup.find('img', {'src': url})
+    if img:
+        return img.get('alt', None)
+    return None
+
+
+def getSkillsName(idPlayer, skills,):
+    SKILLS = {}
+    for url in skills:
+        id = url.get('id', 'N/A')
+        image = url.get('image', 'N/A')
+        alt = getStringSkills(idPlayer, image)
+        SKILLS[str(id)] = str(alt) if alt is not None else 'N/A'
+    return SKILLS
+
+
 def searchPlayer(name):
     try:
         url = 'https://renderz.app/api/search/elasticsearch'
