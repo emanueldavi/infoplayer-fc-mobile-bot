@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
-from renderz_client import get_player_stats
+from fc_api_client import get_player_stats
 from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
 
@@ -131,31 +131,33 @@ async def group_id(update: Update, context):
     )
 
 def _format_player_stats(data: dict) -> str:
-    """Formatea las estadísticas del jugador para Telegram (estilo referencia)."""
+    """Formatea las estadísticas del jugador para Telegram."""
     if data.get("error"):
         return None
     name = data.get("name", "Desconocido")
-    ovr = data.get("ovr", 0)
+    team = data.get("team", "")
     pos = data.get("position", "N/A")
+    ovr = data.get("ovr", 0)
     pace = data.get("pace", 0)
     shooting = data.get("shooting", 0)
     passing = data.get("passing", 0)
     dribbling = data.get("dribbling", 0)
     defending = data.get("defending", 0)
     physical = data.get("physical", 0)
-    return (
-        f"👤 Nombre: {name}\n\n"
-        f"📋 Información de la carta:\n"
-        f"#⃣ GRL: {ovr}\n"
-        f"⚽ Posición: {pos}\n\n"
-        f"📊 Estadísticas:\n"
-        f"⚡ Velocidad: {pace}\n"
-        f"🎯 Disparo: {shooting}\n"
-        f"⚽ Pase: {passing}\n"
-        f"➿ Regate: {dribbling}\n"
-        f"💥 Defensa: {defending}\n"
-        f"💪 Físico: {physical}"
-    )
+    lines = [
+        f"⭐ {name}",
+        f"Team: {team}" if team else None,
+        f"POS: {pos}",
+        f"OVR: {ovr}",
+        "",
+        f"PAC: {pace}",
+        f"SHO: {shooting}",
+        f"PAS: {passing}",
+        f"DRI: {dribbling}",
+        f"DEF: {defending}",
+        f"PHY: {physical}",
+    ]
+    return "\n".join(line for line in lines if line is not None)
 
 
 def _fallback_player_from_scraper(name: str) -> dict | None:
@@ -208,12 +210,6 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             data = {"error": "connection_error"}
 
-        # Si falla RenderZ client, intentar scraper antiguo
-        if data.get("error"):
-            fallback = _fallback_player_from_scraper(name)
-            if fallback:
-                data = fallback
-
         if data.get("error") == "player_not_found":
             await update.message.reply_text(
                 '😕 No encontré ningún jugador con ese nombre.\n\n'
@@ -221,7 +217,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if data.get("error") in ("scrape_failed", "connection_error"):
+        if data.get("error") in ("scrape_failed", "connection_error", "timeout", "api_error", "invalid_response"):
             await update.message.reply_text(
                 '⚠️ No se pudieron obtener las estadísticas.\n\n'
                 '🔄 Intenta de nuevo más tarde.'
@@ -230,29 +226,9 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         msg = _format_player_stats(data)
         if msg:
-            asset_id = data.get("asset_id")
-            if not asset_id and data.get("url"):
-                parts = data.get("url", "").rstrip("/").split("/")
-                if parts and parts[-1].isdigit():
-                    asset_id = parts[-1]
-            keyboard = InlineKeyboardMarkup(getButtonsE(str(asset_id))) if asset_id else None
-            sent = await update.message.reply_text(
-                msg,
-                reply_markup=keyboard
-            )
-            if keyboard:
-                context.chat_data[sent.message_id] = {
-                    "format": "simple",
-                    "owner_id": update.effective_user.id,
-                    "asset_id": str(asset_id),
-                    "rank": 0,
-                    "level": 0,
-                    "base_name": data.get("name", "Jugador"),
-                }
+            await update.message.reply_text(msg)
         else:
-            await update.message.reply_text(
-                '😕 No encontré ningún jugador con ese nombre.'
-            )
+            await update.message.reply_text('😕 No encontré ningún jugador con ese nombre.')
     else:
         await update.message.reply_text(
             '🔍 Para buscar un jugador, escribe su nombre después del comando.\n\n'
@@ -424,7 +400,10 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     except BadRequest:
                         await query.answer(text="✅ Ya tienes este rango.", show_alert=True)
                 else:
-                    await query.answer(text="⚠️ Error al obtener datos. Intenta de nuevo.", show_alert=True)
+                    await query.answer(
+                        text="⚠️ La API de RenderZ no responde (403). Las estadísticas por rango/entrenamiento no están disponibles. Intenta más tarde.",
+                        show_alert=True
+                    )
             return
         elif data.startswith('level') and not data == 'ignoreLevels':
             partes = data.split('_')
@@ -446,7 +425,10 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     except BadRequest:
                         await query.answer(text="✅ Ya tienes este nivel.", show_alert=True)
                 else:
-                    await query.answer(text="⚠️ Error al obtener datos.", show_alert=True)
+                    await query.answer(
+                        text="⚠️ La API de RenderZ no responde (403). Intenta más tarde.",
+                        show_alert=True
+                    )
             return
         elif data.startswith('resetAll'):
             partes = data.split('_')
@@ -461,7 +443,10 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     context.chat_data[msg_id] = datos
                     await query.edit_message_text(mensaje, reply_markup=InlineKeyboardMarkup(getButtonsE(jugador_id)))
                 else:
-                    await query.answer(text="⚠️ Error al reiniciar.", show_alert=True)
+                    await query.answer(
+                        text="⚠️ La API de RenderZ no responde (403). Intenta más tarde.",
+                        show_alert=True
+                    )
             return
         elif data.startswith('skillUnlock_') or data.startswith('skill_'):
             await query.answer(text="🪄 Las habilidades completas están en la búsqueda detallada.", show_alert=True)

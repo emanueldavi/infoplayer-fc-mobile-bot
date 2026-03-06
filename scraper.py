@@ -143,31 +143,37 @@ def getInfoPlayer(id):
         return f'Error: {e}'
     
 def getInfoPlayerBoost(id, data, level=None, skill=None):
-    try:
-        session = _get_renderz_session()
-        session.get("https://renderz.app/24/players", timeout=15)
-        url = getUrlUpgrade(id)
-        rank = data
-        level = level if level is not None else 0
-        skill = skill if skill is not None else []
-        payload = {
-            "upgradeModels": {
-                "level": level,
-                "rankUp": rank,
-                "skillUpgrades": skill
-            },
-            "playerId": id
-        }
-        response = session.post(url, json=payload, timeout=15)
-        if response.status_code == 200:
-            return response.json()
-        return f'Error: {response.status_code}'
-    except requests.exceptions.Timeout:
-        return 'Error: Timeout'
-    except requests.exceptions.RequestException as e:
-        return f'Error: {e}'
-    except Exception as e:
-        return f'Error: {e}'
+    import time
+    rank = data
+    level = level if level is not None else 0
+    skill = skill if skill is not None else []
+    payload = {
+        "upgradeModels": {
+            "level": level,
+            "rankUp": rank,
+            "skillUpgrades": skill
+        },
+        "playerId": id
+    }
+    url = getUrlUpgrade(id)
+    last_error = None
+    for intento in range(3):
+        try:
+            session = _get_renderz_session()
+            session.get("https://renderz.app/24/players", timeout=15)
+            response = session.post(url, json=payload, timeout=15)
+            if response.status_code == 200:
+                return response.json()
+            last_error = f'Error: {response.status_code}'
+        except requests.exceptions.Timeout:
+            last_error = 'Error: Timeout'
+        except requests.exceptions.RequestException as e:
+            last_error = f'Error: {e}'
+        except Exception as e:
+            last_error = f'Error: {e}'
+        if intento < 2:
+            time.sleep(1.5)
+    return last_error
     
 
 def getRedeemCodes():

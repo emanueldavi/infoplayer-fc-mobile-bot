@@ -271,27 +271,103 @@ def get_player_stats(player_name: str) -> dict:
     if name_key in cache:
         cached = cache[name_key]
         if isinstance(cached, dict) and "error" not in cached:
+            # Si los datos coinciden con fallback predefinido, intentar scraping de nuevo
+            aid = cached.get("asset_id")
+            if not aid and cached.get("url"):
+                parts = cached["url"].rstrip("/").split("/")
+                aid = parts[-1] if parts and parts[-1].isdigit() else None
+            if aid and any(f.get("asset_id") == aid for f in FALLBACK_PLAYERS.values()):
+                data = _scrape_from_data_json(aid) or _scrape_player_page(aid)
+                if data:
+                    result = {
+                        "name": data.get("name", "Unknown"),
+                        "ovr": data.get("ovr", 0),
+                        "position": data.get("position", "N/A"),
+                        "pace": data.get("pace", 0),
+                        "shooting": data.get("shooting", 0),
+                        "passing": data.get("passing", 0),
+                        "dribbling": data.get("dribbling", 0),
+                        "defending": data.get("defending", 0),
+                        "physical": data.get("physical", 0),
+                        "url": data.get("url", f"{PLAYER_PAGE_URL}/{aid}"),
+                        "asset_id": aid,
+                    }
+                    cache[name_key] = result
+                    _save_cache(cache)
+                    return result
             return _ensure_asset_id(cached)
         if isinstance(cached, dict) and cached.get("error") == "player_not_found":
             return cached
     asset_id = _search_player_id(player_name)
     if not asset_id:
-        # Búsqueda en jugadores conocidos (coincidencia parcial)
+        # Búsqueda en jugadores conocidos (coincidencia parcial) para obtener asset_id
         for known_name, aid in _KNOWN_ASSET_IDS.items():
             if known_name in name_key or name_key in known_name:
-                fallback = next(
-                    (f.copy() for f in FALLBACK_PLAYERS.values() if f.get("asset_id") == aid),
-                    None
-                )
-                if fallback:
-                    return fallback
+                asset_id = aid
                 break
+        if not asset_id:
+            if name_key in FALLBACK_PLAYERS:
+                fallback = FALLBACK_PLAYERS[name_key].copy()
+                asset_id = fallback.get("asset_id")
+            else:
+                for key, fallback_data in FALLBACK_PLAYERS.items():
+                    if key in name_key or name_key in key:
+                        fallback = fallback_data.copy()
+                        asset_id = fallback.get("asset_id")
+                        break
+        if not asset_id:
+            result = {"error": "player_not_found", "message": "Jugador no encontrado."}
+            cache[name_key] = result
+            _save_cache(cache)
+            return result
+        # Tenemos asset_id: intentar obtener datos reales por scraping antes de usar fallback
+        data = _scrape_from_data_json(asset_id)
+        if not data:
+            data = _scrape_player_page(asset_id)
+        if data:
+            fallback = next(
+                (f for f in FALLBACK_PLAYERS.values() if f.get("asset_id") == asset_id),
+                None
+            )
+            stats_keys = ("pace", "shooting", "passing", "dribbling", "defending", "physical")
+            has_valid_stats = any(data.get(k, 0) for k in stats_keys)
+            if not has_valid_stats and fallback:
+                for k in stats_keys:
+                    data[k] = fallback.get(k, 0)
+                has_valid_stats = True
+            pos = data.get("position", "") or "N/A"
+            if pos in ("N/A", "FC") and fallback:
+                pos = fallback.get("position", "N/A")
+            result = {
+                "name": (data.get("name") or "").strip() or (fallback.get("name") if fallback else "Unknown"),
+                "ovr": data.get("ovr") or (fallback.get("ovr") if fallback else 0),
+                "position": pos or "N/A",
+                "pace": data.get("pace", 0),
+                "shooting": data.get("shooting", 0),
+                "passing": data.get("passing", 0),
+                "dribbling": data.get("dribbling", 0),
+                "defending": data.get("defending", 0),
+                "physical": data.get("physical", 0),
+                "url": data.get("url", f"{PLAYER_PAGE_URL}/{asset_id}"),
+                "asset_id": asset_id,
+            }
+            if (not result["name"] or result["name"] == "Unknown") and fallback:
+                result["name"] = fallback.get("name", "Unknown")
+            if fallback and (not result["ovr"] or result["ovr"] < 50):
+                result["ovr"] = fallback.get("ovr", 0)
+            if result["position"] in ("N/A", "FC") and fallback:
+                result["position"] = fallback.get("position", "N/A")
+            if has_valid_stats or result["ovr"] or result["name"] != "Unknown":
+                cache[name_key] = result
+                _save_cache(cache)
+                return result
+        # Scraping falló: usar datos predefinidos
         if name_key in FALLBACK_PLAYERS:
             return FALLBACK_PLAYERS[name_key].copy()
         for key, fallback_data in FALLBACK_PLAYERS.items():
             if key in name_key or name_key in key:
                 return fallback_data.copy()
-        result = {"error": "player_not_found", "message": "Jugador no encontrado."}
+        result = {"error": "scrape_failed", "message": "No se pudieron obtener las estadísticas."}
         cache[name_key] = result
         _save_cache(cache)
         return result
