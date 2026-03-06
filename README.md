@@ -135,7 +135,7 @@ infoplayer-fc-mobile-bot/
 ├── 📄 btns.py           # Definición de botones inline
 ├── 📄 str.py            # Traducciones y constantes (posiciones, rangos)
 ├── 📄 requirements.txt  # Dependencias Python
-├── 📄 Procfile          # Configuración para despliegue (Heroku)
+├── 📄 Procfile          # Configuración para despliegue (Railway, Heroku)
 ├── 📄 .env.example      # Plantilla de variables de entorno
 └── 📄 README.md         # Este archivo
 ```
@@ -143,6 +143,8 @@ infoplayer-fc-mobile-bot/
 ---
 
 ## 🚢 Despliegue
+
+> **🚂 Implementación actual:** El bot está desplegado en [Railway](https://railway.app).
 
 ### ☁️ Heroku
 

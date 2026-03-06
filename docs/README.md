@@ -9,7 +9,7 @@
 | Documento | Descripción |
 |-----------|-------------|
 | [**API.md**](API.md) | 📚 Documentación de la API interna, módulos y funciones |
-| [**DEPLOYMENT.md**](DEPLOYMENT.md) | 🚢 Guía de despliegue en Heroku, Railway, Render y VPS |
+| [**DEPLOYMENT.md**](DEPLOYMENT.md) | 🚢 Guía de despliegue (implementación en Railway) |
 
 ---
 

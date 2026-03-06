@@ -2,6 +2,8 @@
 
 > Instrucciones para desplegar el **FC Mobile Info Bot** en diferentes plataformas.
 
+> **🚂 Implementación actual:** El bot está desplegado en [Railway](https://railway.app).
+
 ---
 
 ## ☁️ Heroku
