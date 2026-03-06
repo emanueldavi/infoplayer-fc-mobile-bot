@@ -47,7 +47,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
         if price_info and 'basePrice' in price_info:
             price = '{:,}'.format(price_info['basePrice'])
         else:
-            price = '\-'
+            price = r'\-'
     else:
         price = 'Intransferible'
 
@@ -56,7 +56,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"👤 *Nombre*: {nombre}\n"
             f"\n"
             f"📋 *Info de la carta*:\n"
-            f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"\\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
             f"💰 *Precio*: {price}\n"
@@ -78,7 +78,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
             f"👤 *Nombre*: {nombre}\n"
             f"\n"
             f"📋 *Info de la carta*:\n"
-            f"\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"\\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
             f"📊 *Rango*: {rango_es}\n"
             f"⚓️ *Posición*: {posicion_es}\n"
             f"💰 *Precio*: {price}\n"
@@ -168,7 +168,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text('😕 No encontré ningún jugador con ese nombre. Intenta con otro.')
         else:
-                await update.message.reply_text(
+            await update.message.reply_text(
                 escape_markdown('_*Ese jugador no está en la base de datos de FC MOBILE\\. Intenta de nuevo con otro nombre\\.*_'),
                 parse_mode="MarkdownV2"
             )
@@ -176,7 +176,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             escape_markdown(
                 '_*Para buscar un jugador, escribe su nombre después del comando\\.*_\n\n'
-                f'_*Ejemplo:*_ `{escape_markdown('/player Messi', code=True)}`'
+                f'_*Ejemplo:*_ `{escape_markdown("/player Messi", code=True)}`'
             ),
             parse_mode="MarkdownV2"
         )
@@ -286,7 +286,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     datos = context.chat_data.get(msg_id)
     if not datos:
-            await query.answer(
+        await query.answer(
             text="⛔️ Este mensaje ya no es válido o no tienes permiso para usarlo.",
             show_alert=True
         )
@@ -340,9 +340,9 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if nivel_num > limite:
                 await query.answer(
-                text=f"❌ Elegiste nivel {nivel_num}, pero el rango {rank} solo permite hasta nivel {limite}.",
-                show_alert=True
-                        )
+                    text=f"❌ Elegiste nivel {nivel_num}, pero el rango {rank} solo permite hasta nivel {limite}.",
+                    show_alert=True
+                )
                 return
 
         resultado = getInfoPlayerBoost(jugador_id, rank, level=nivel_num, skill=jugador_original.get('skillUpgrades', []))
@@ -358,8 +358,8 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except BadRequest as e:
             if "Message is not modified" in str(e):
                 await query.answer(
-                        text="✅ Ya tienes este nivel seleccionado.",
-                        show_alert=True
+                    text="✅ Ya tienes este nivel seleccionado.",
+                    show_alert=True
                 )
                 return
             else:
