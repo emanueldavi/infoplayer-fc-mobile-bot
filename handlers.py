@@ -103,14 +103,12 @@ def build_skill_keyboard(jugador_original, player_id):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
-        "⚽️ ¡Bienvenido! ⚽️\n\n"
-        "🎮 El mejor bot de FC MOBILE en Telegram.\n\n"
-        "📊 Aquí encontrarás toda la información de los jugadores:\n"
-        "   • Estadísticas completas\n"
-        "   • GRL y rangos\n"
-        "   • Habilidades y entrenamientos\n"
-        "   • Códigos de canje\n\n"
-        "👉 Envía /help para ver los comandos disponibles."
+        "⚽️ ¡Bienvenido al bot de FC Mobile!\n\n"
+        "📋 Comandos:\n"
+        "🔍 /player <nombre> - Busca un jugador\n"
+        "🎁 /code - Códigos de canje\n"
+        "🆔 /id - ID del chat\n"
+        "❓ /help - Ayuda"
     )
     await update.message.reply_text(msg)
 
@@ -133,22 +131,30 @@ async def group_id(update: Update, context):
     )
 
 def _format_player_stats(data: dict) -> str:
-    """Formatea las estadísticas del jugador para Telegram."""
+    """Formatea las estadísticas del jugador para Telegram (estilo referencia)."""
     if data.get("error"):
         return None
-    name = data.get("name", "Unknown")
+    name = data.get("name", "Desconocido")
     ovr = data.get("ovr", 0)
     pos = data.get("position", "N/A")
+    pace = data.get("pace", 0)
+    shooting = data.get("shooting", 0)
+    passing = data.get("passing", 0)
+    dribbling = data.get("dribbling", 0)
+    defending = data.get("defending", 0)
+    physical = data.get("physical", 0)
     return (
-        f"⭐ {name}\n"
-        f"OVR: {ovr}\n"
-        f"POS: {pos}\n\n"
-        f"PAC: {data.get('pace', 0)}\n"
-        f"SHO: {data.get('shooting', 0)}\n"
-        f"PAS: {data.get('passing', 0)}\n"
-        f"DRI: {data.get('dribbling', 0)}\n"
-        f"DEF: {data.get('defending', 0)}\n"
-        f"PHY: {data.get('physical', 0)}"
+        f"👤 Nombre: {name}\n\n"
+        f"📋 Información de la carta:\n"
+        f"#⃣ GRL: {ovr}\n"
+        f"⚽ Posición: {pos}\n\n"
+        f"📊 Estadísticas:\n"
+        f"⚡ Velocidad: {pace}\n"
+        f"🎯 Disparo: {shooting}\n"
+        f"⚽ Pase: {passing}\n"
+        f"➿ Regate: {dribbling}\n"
+        f"💥 Defensa: {defending}\n"
+        f"💪 Físico: {physical}"
     )
 
 
