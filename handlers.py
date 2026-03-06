@@ -4,25 +4,10 @@ from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
 from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
-import re
-import json
 
 SKILLS = {}
 TOP10 = {}  # Placeholder para top10_command (se puede poblar con datos de jugadores por chat/posición)
 
-
-def escape_markdown(text, code=False):
-    """
-    Escapa caracteres especiales para MarkdownV2 de Telegram.
-    Si code=True, escapa todos los caracteres especiales (para monoespaciado).
-    Si code=False, deja * y _ y ` sin escapar (para negrita/cursiva/monoespaciado).
-    """
-    if code:
-        # Escapa todos los caracteres especiales para monoespaciado
-        return re.sub(r'([\\`*_{}\[\]()#+\-.!|>~=])', r'\\\1', str(text))
-    else:
-        # Escapa todos excepto * _ ` para permitir negrita/cursiva/monoespaciado
-        return re.sub(r'([\\{}\[\]()#+\-.!|>~=])', r'\\\1', str(text))
 
 def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     posicion = jugador.get('position', 'N/A')
@@ -39,7 +24,6 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     nombre = jugador.get('commonName', '')
     if  nombre == '':
         nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}"
-    nombre = escape_markdown(nombre)
 
     if jugador.get('auctionable') and jugador.get('priceData'):
         rango_str = str(rango)
@@ -47,58 +31,51 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
         if price_info and 'basePrice' in price_info:
             price = '{:,}'.format(price_info['basePrice'])
         else:
-            price = r'\-'
+            price = '-'
     else:
-        price = 'Intransferible'
+        price = '🚫 Intransferible'
 
     if posicion == "GK":
         mensaje = (
-            f"👤 *Nombre*: {nombre}\n"
-            f"\n"
-            f"📋 *Info de la carta*:\n"
-            f"\\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
-            f"📊 *Rango*: {rango_es}\n"
-            f"⚓️ *Posición*: {posicion_es}\n"
-            f"💰 *Precio*: {price}\n"
-            f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
-            f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
-            f"📏 *Altura*: {jugador.get('height', 'N/A')}cm\n"
-
-            f"\n"
-            f"📊 *Estadísticas*:\n"
-            f"🧤 *Estirada*: {stats.get('avg1', 'N/A')}\n"
-            f"🎯 *Colocación*: {stats.get('avg2', 'N/A')}\n"
-            f"⚽️ *Manejo*: {stats.get('avg3', 'N/A')}\n"
-            f"⚡️ *Reflejos*: {stats.get('avg4', 'N/A')}\n"
-            f"🦵🏻 *Patada*: {stats.get('avg5', 'N/A')}\n"
-            f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
+            f"👤 Nombre: {nombre}\n\n"
+            f"📋 Info de la carta:\n"
+            f"#⃣ GRL: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"📊 Rango: {rango_es}\n"
+            f"⚓️ Posición: {posicion_es}\n"
+            f"💰 Precio: {price}\n"
+            f"🦵🏻 Pierna hábil: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
+            f"👣 Pierna mala: {jugador.get('weakFoot', 'N/A')}\n"
+            f"📏 Altura: {jugador.get('height', 'N/A')} cm\n\n"
+            f"📊 Estadísticas:\n"
+            f"🧤 Estirada: {stats.get('avg1', 'N/A')}\n"
+            f"🎯 Colocación: {stats.get('avg2', 'N/A')}\n"
+            f"⚽️ Manejo: {stats.get('avg3', 'N/A')}\n"
+            f"⚡️ Reflejos: {stats.get('avg4', 'N/A')}\n"
+            f"🦵🏻 Patada: {stats.get('avg5', 'N/A')}\n"
+            f"💪🏻 Físico: {stats.get('avg6', 'N/A')}\n"
         )
     else:
         mensaje = (
-            f"👤 *Nombre*: {nombre}\n"
-            f"\n"
-            f"📋 *Info de la carta*:\n"
-            f"\\#⃣ *GRL*: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
-            f"📊 *Rango*: {rango_es}\n"
-            f"⚓️ *Posición*: {posicion_es}\n"
-            f"💰 *Precio*: {price}\n"
-            f"🦵🏻 *Pierna hábil*: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
-            f"👣 *Pierna mala*: {jugador.get('weakFoot', 'N/A')}\n"
-            f"📏 *Altura*: {jugador.get('height', 'N/A')}cm\n"
-
-            f"⭐️ *Filigrinas*: {jugador.get('skillMovesLevel', 'N/A')}\n"
-            f"⚖️ *Rendimiento ⚽️/🛡️*: {WORK_ES.get(str(jugador.get('workRateAtt', 'N/A')))}/{WORK_ES.get(str(jugador.get('workRateDef', 'N/A')))}\n"
-
-            f"🪄 *Posiciones Secundarias*: {posiciones_secundarias_str}\n"
-            f"\n"
-            f"📊 *Estadísticas*:\n"
-            f"⚡️ *Velocidad*: {stats.get('avg1', 'N/A')}\n"
-            f"🎯 *Disparo*: {stats.get('avg2', 'N/A')}\n"
-            f"⚽️ *Pase*: {stats.get('avg3', 'N/A')}\n"
-            f"💥 *Regate*: {stats.get('avg4', 'N/A')}\n"
-            f"🛡 *Defensa*: {stats.get('avg5', 'N/A')}\n"
-            f"💪🏻 *Físico*: {stats.get('avg6', 'N/A')}\n"
-            f"🥵 *Resistencia*: {stats.get('stamina', 'N/A')}\n"
+            f"👤 Nombre: {nombre}\n\n"
+            f"📋 Info de la carta:\n"
+            f"#⃣ GRL: {grl if grl is not None else jugador.get('rating', 'N/A')}\n"
+            f"📊 Rango: {rango_es}\n"
+            f"⚓️ Posición: {posicion_es}\n"
+            f"💰 Precio: {price}\n"
+            f"🦵🏻 Pierna hábil: {'Derecha' if jugador.get('foot', None) == 1 else 'Izquierda' if jugador.get('foot', None) == 2 else 'Desconocida'}\n"
+            f"👣 Pierna mala: {jugador.get('weakFoot', 'N/A')}\n"
+            f"📏 Altura: {jugador.get('height', 'N/A')} cm\n"
+            f"⭐️ Filigrinas: {jugador.get('skillMovesLevel', 'N/A')}\n"
+            f"⚖️ Rendimiento ⚽️/🛡️: {WORK_ES.get(str(jugador.get('workRateAtt', 'N/A')))}/{WORK_ES.get(str(jugador.get('workRateDef', 'N/A')))}\n"
+            f"🪄 Posiciones Secundarias: {posiciones_secundarias_str}\n\n"
+            f"📊 Estadísticas:\n"
+            f"⚡️ Velocidad: {stats.get('avg1', 'N/A')}\n"
+            f"🎯 Disparo: {stats.get('avg2', 'N/A')}\n"
+            f"⚽️ Pase: {stats.get('avg3', 'N/A')}\n"
+            f"💥 Regate: {stats.get('avg4', 'N/A')}\n"
+            f"🛡 Defensa: {stats.get('avg5', 'N/A')}\n"
+            f"💪🏻 Físico: {stats.get('avg6', 'N/A')}\n"
+            f"🥵 Resistencia: {stats.get('stamina', 'N/A')}\n"
         )
     keyboard = getButtonsE(playerId)
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -125,14 +102,17 @@ def build_skill_keyboard(jugador_original, player_id):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
-        "⚽️ *¡Bienvenido!* ⚽️\n\n"
-        "_El mejor bot de FC MOBILE en Telegram._ 🎮\n\n"
-        "Aquí encontrarás toda la información de los jugadores: estadísticas, GRL, rangos, habilidades y más.\n\n"
-        "👉 *Envía /help* para ver los comandos disponibles."
+        "⚽️ ¡Bienvenido! ⚽️\n\n"
+        "🎮 El mejor bot de FC MOBILE en Telegram.\n\n"
+        "📊 Aquí encontrarás toda la información de los jugadores:\n"
+        "   • Estadísticas completas\n"
+        "   • GRL y rangos\n"
+        "   • Habilidades y entrenamientos\n"
+        "   • Códigos de canje\n\n"
+        "👉 Envía /help para ver los comandos disponibles."
     )
     await update.message.reply_text(
-        escape_markdown(msg),
-        parse_mode="MarkdownV2",
+        msg,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🌐 Abrir Web App", web_app=WebAppInfo(url='https://mappemanuel.loca.lt/'))]])
     )
 
@@ -144,16 +124,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎁 /code - Códigos de canje activos\n"
         "🆔 /id - ID del chat o grupo\n"
         "❓ /help - Esta ayuda\n\n"
-        "¡Pruébalos cuando quieras! ⚡"
+        "⚡ ¡Pruébalos cuando quieras!"
     )
     await update.message.reply_text(mensaje)
 
 async def group_id(update: Update, context):
     chat_id = update.effective_chat.id
-    chat_id_escaped = escape_markdown(str(chat_id), code=True)
     await update.message.reply_text(
-        f"🆔 *ID de este chat/grupo:*\n\\`{chat_id_escaped}\\`",
-        parse_mode="MarkdownV2"
+        f"🆔 ID de este chat/grupo:\n\n📌 {chat_id}"
     )
 
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -169,30 +147,26 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text('😕 No encontré ningún jugador con ese nombre. Intenta con otro.')
         else:
             await update.message.reply_text(
-                escape_markdown('_*Ese jugador no está en la base de datos de FC MOBILE\\. Intenta de nuevo con otro nombre\\.*_'),
-                parse_mode="MarkdownV2"
+                '❌ Ese jugador no está en la base de datos de FC MOBILE.\n\n🔄 Intenta de nuevo con otro nombre.'
             )
     else:
         await update.message.reply_text(
-            escape_markdown(
-                '_*Para buscar un jugador, escribe su nombre después del comando\\.*_\n\n'
-                f'_*Ejemplo:*_ `{escape_markdown("/player Messi", code=True)}`'
-            ),
-            parse_mode="MarkdownV2"
+            '🔍 Para buscar un jugador, escribe su nombre después del comando.\n\n'
+            '📝 Ejemplo: /player Messi'
         )
 
 async def top10_command(update, context):
     chat_id = update.effective_chat.id
     if not context.args:
-        await update.message.reply_text("Ejemplo: /top10 ST")
+        await update.message.reply_text("📝 Ejemplo: /top10 ST")
         return
     pos = context.args[0].upper()
     lista = TOP10.get(chat_id, {}).get(pos, [])
     if not lista:
-        await update.message.reply_text(f"No hay jugadores en el Top 10 de {pos}.")
+        await update.message.reply_text(f"😕 No hay jugadores en el Top 10 de {pos}.")
         return
 
-    mensaje = f"🏆 Top 10 {POSICIONES_ES.get(pos, pos)}:\n\n"
+    mensaje = f"🏆 Top 10 {POSICIONES_ES.get(pos, pos)}\n\n"
     for idx, jugador in enumerate(lista, 1):
         nombre = jugador.get('commonName') or f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
         grl = jugador.get('rating', 'N/A')
@@ -210,13 +184,14 @@ async def redeemCodes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = getRedeemCodes()
     disponibles = [c for c in data if c.get("isExpired") is False]
     if disponibles:
-        mensaje = "🎁 *Códigos de canje activos*\n\n"
+        mensaje = "🎁 Códigos de canje activos\n\n"
         for c in disponibles:
             mensaje += (
                 f"✨ {c['code']}\n"
                 f"   🎯 Recompensa: {c['reward']}\n"
                 f"   ⏰ Expira: {c['expired']}\n\n"
             )
+        mensaje += "👇 Canjea en el enlace de abajo 👇"
         keyboard = [
             [InlineKeyboardButton("🎮 Canjear aquí", url="https://redeem.fcm.ea.com/")]
         ]
@@ -227,7 +202,7 @@ async def redeemCodes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if data:
             ultimo = data[0]
             mensaje += (
-                "📌 Último código que estuvo activo:\n"
+                "📌 Último código que estuvo activo:\n\n"
                 f"✨ {ultimo['code']}\n"
                 f"   🎯 Recompensa: {ultimo['reward']}\n"
                 f"   ⏰ Expirado: {ultimo['expired']}\n"
@@ -267,7 +242,7 @@ async def showPlayer(update, context, players, callback_prefix="select_"):
         keyboard.append([InlineKeyboardButton(texto, callback_data=f"{callback_prefix}{player_asset_id}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     msg = await update.message.reply_text(
-        "👆 Elige el jugador que quieres ver:",
+        "👆 Elige el jugador que quieres ver:\n\n⚽️ Selecciona uno de los botones de abajo 👇",
         reply_markup=reply_markup
     )
     # Guarda resultados para el callback
@@ -295,7 +270,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     owner_id = datos.get('owner_id')
     if owner_id and query.from_user.id != owner_id:
         await query.answer(
-            text="⛔️ Solo quien hizo la búsqueda puede usar estos botones.",
+            text="⛔️ Solo quien hizo la búsqueda puede usar estos botones. 🔒",
             show_alert=True
         )
         return
@@ -316,7 +291,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['jugador_original'] = jugador_original
             mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, grl)
             try:
-                await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+                await query.edit_message_text(mensaje, reply_markup=reply_markup)
             except BadRequest as e:
                 if "Message is not modified" in str(e):
                     await query.answer(
@@ -327,7 +302,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     raise
         else:
-            await query.edit_message_text("😕 No pude obtener el ID del jugador.")
+            await query.edit_message_text("😕 No pude obtener el ID del jugador. Intenta de nuevo.")
     elif data.startswith('level') and jugador_original:
         partes = data.split('_')
         nivel = partes[0]
@@ -354,7 +329,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'))
         try:
-            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+            await query.edit_message_text(mensaje, reply_markup=reply_markup)
         except BadRequest as e:
             if "Message is not modified" in str(e):
                 await query.answer(
@@ -379,7 +354,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, grl)
             try:
-                await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+                await query.edit_message_text(mensaje, reply_markup=reply_markup)
             except BadRequest as e:
                 if "Message is not modified" in str(e):
                     # No hacer nada si el mensaje no cambió
@@ -391,7 +366,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="📊 Rangos disponibles:\n\n"
                 "⚪️ Base | 🟢 Verde | 🔵 Azul\n"
                 "🟣 Morado | 🔴 Rojo | 🟠 Naranja\n\n"
-                "¡Elige el que quieras!",
+                "👆 ¡Elige el que quieras!",
             show_alert=True
         )
         return
@@ -422,7 +397,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             SKILLS = getSkillsName(jugador.get('assetId'), jugador.get('skillStyleSkills', []))
             context.user_data['jugador_original'] = jugador
             mensaje, reply_markup = construir_mensaje_y_botones(jugador, stats)
-            await query.edit_message_text(mensaje, reply_markup=reply_markup, parse_mode="MarkdownV2")
+            await query.edit_message_text(mensaje, reply_markup=reply_markup)
         else:
             await query.edit_message_text("😕 No encontré ese jugador.")
         return
@@ -432,14 +407,14 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = build_skill_keyboard(jugador_original, player_id)
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         elif not jugador_original:
-            await query.answer(text="⛔️ Primero busca un jugador con /player", show_alert=True)
+            await query.answer(text="⛔️ Primero busca un jugador con /player 🔍", show_alert=True)
         else:
-            await query.edit_message_text("😕 No encontré ese jugador.")
+            await query.edit_message_text("😕 No encontré ese jugador. Intenta con otra búsqueda.")
         return
 
     elif data.startswith('skill_'):
         if not jugador_original:
-            await query.answer(text="⛔️ Primero busca un jugador con /player", show_alert=True)
+            await query.answer(text="⛔️ Primero busca un jugador con /player 🔍", show_alert=True)
             return
         partes = data.split('_')
         player_id = partes[1]
@@ -466,7 +441,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             skill['level'] += 1
                     else:
                         await query.answer(
-                            text="⚠️ Debes subir la habilidad base a nivel 3 primero.",
+                            text="⚠️ Debes subir la habilidad base a nivel 3 primero. 📊",
                             show_alert=True
                         )
                         return
@@ -482,7 +457,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         skills.append({'id': skill_id, 'level': 1})
                     else:
                         await query.answer(
-                            text="⚠️ Debes subir la habilidad base a nivel 3 primero.",
+                            text="⚠️ Debes subir la habilidad base a nivel 3 primero. 📊",
                             show_alert=True
                         )
                         return
@@ -501,7 +476,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 stats['stamina'] = player_data.get('stats', {}).get('sta', 'N/A')  # Reiniciar resistencia a 0
 
                 mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'), skill=True)
-                await query.edit_message_text(mensaje, reply_markup=query.message.reply_markup, parse_mode="MarkdownV2")
+                await query.edit_message_text(mensaje, reply_markup=query.message.reply_markup)
                 # Actualiza el teclado de habilidades con los niveles actualizados
                 reply_markup = build_skill_keyboard(jugador_original, player_id)
                 await query.edit_message_reply_markup(reply_markup=reply_markup)
@@ -523,7 +498,7 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         )
                     else:
                         await query.answer(
-                            text="⚠️ Sube de rango al jugador primero para desbloquear habilidades.",
+                            text="⚠️ Sube de rango al jugador primero para desbloquear habilidades. 📈",
                             show_alert=True
                         )
                     return

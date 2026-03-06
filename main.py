@@ -35,7 +35,11 @@ async def error_handler(update, context):
         print(f"Error enviando notificación de error al creador: {e}")
     
     if update and update.effective_message:
-        await update.effective_message.reply_text("😕 Ocurrió un error inesperado. Intenta de nuevo más tarde.")
+        await update.effective_message.reply_text(
+            "😕 Ocurrió un error inesperado.\n\n"
+            "🔄 Intenta de nuevo más tarde.\n"
+            "📋 Si el problema persiste, usa /help para ver los comandos disponibles."
+        )
 
 async def notificar_parada():
     """Notifica al creador cuando el bot se detiene"""
