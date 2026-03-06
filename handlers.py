@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
@@ -111,10 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "   • Códigos de canje\n\n"
         "👉 Envía /help para ver los comandos disponibles."
     )
-    await update.message.reply_text(
-        msg,
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🌐 Abrir Web App", web_app=WebAppInfo(url='https://mappemanuel.loca.lt/'))]])
-    )
+    await update.message.reply_text(msg)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = (

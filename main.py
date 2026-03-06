@@ -1,6 +1,5 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from telegram import Bot, Update
-from telegram.ext import ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram import Bot
 import os
 import sys
 from handlers import start, player, help_command, botones_callback, group_id, redeemCodes
@@ -53,16 +52,6 @@ async def notificar_parada():
     except Exception as e:
         print(f"Error enviando mensaje de parada al creador: {e}")
 
-async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = update.effective_message.web_app_data.data
-    user = update.effective_user
-    print(update)
-    # Aquí puedes procesar los datos recibidos desde la mini app
-    print(f"Datos recibidos de la mini app: {data}")
-    await update.effective_message.reply_text(
-        f"✅ ¡Datos recibidos!\n\n👤 Usuario: {user.first_name}\n📦 Datos: {data}"
-    )
-
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler('start', start))
@@ -71,13 +60,6 @@ def main():
     app.add_handler(CommandHandler('id', group_id))
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CallbackQueryHandler(botones_callback))
-
-    # Handler para datos de la Web App (filtro correcto para PTB v20+)
-    class WebAppDataFilter(filters.MessageFilter):
-        def filter(self, message):
-            return message is not None and getattr(message, 'web_app_data', None) is not None
-
-    app.add_handler(MessageHandler(WebAppDataFilter(), handle_webapp_data))
     app.add_error_handler(error_handler)
 
     # Enviar mensaje al creador al iniciar

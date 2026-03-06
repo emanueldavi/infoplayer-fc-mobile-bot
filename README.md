@@ -21,7 +21,6 @@
 | 🪄 **Habilidades** | Consulta y gestiona las habilidades de estilo de cada jugador |
 | 🎁 **Códigos de canje** | Obtén los códigos activos de FC Mobile con un solo comando |
 | 🆔 **ID de chat** | Obtén el ID del chat o grupo para configuraciones |
-| 🌐 **Web App** | Integración con mini aplicaciones web |
 | 🌎 **Español latinoamericano** | Interfaz en español neutro y accesible |
 
 ---

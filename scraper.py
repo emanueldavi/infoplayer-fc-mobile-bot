@@ -1,6 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
 
+try:
+    import cloudscraper
+    HAS_CLOUDSCRAPER = True
+except ImportError:
+    HAS_CLOUDSCRAPER = False
+
 def getStringSkills(id, url):
     cookies = {'locale': 'es-ES'}  # Cambia 'language' por el nombre real de la cookie si es diferente
     respuesta = requests.get(f'https://renderz.app/24/player/{id}', cookies=cookies)
@@ -25,12 +31,19 @@ def getSkillsName(idPlayer, skills,):
 def searchPlayer(name):
     """Busca jugadores en la API de Renderz. Retorna lista de jugadores o string con error."""
     try:
-        url = 'https://renderz.app/api/search/elasticsearch'
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        if HAS_CLOUDSCRAPER:
+            session = cloudscraper.create_scraper(
+                browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+            )
+        else:
+            session = requests.Session()
+        session.headers.update({
             "Accept": "application/json",
             "Content-Type": "application/json",
-        }
+            "Origin": "https://renderz.app",
+            "Referer": "https://renderz.app/24/players",
+        })
+        url = 'https://renderz.app/api/search/elasticsearch'
         data = {
             "query": {
                 "bool": {
@@ -53,7 +66,7 @@ def searchPlayer(name):
             "from": 0,
             "size": 40
         }
-        response = requests.post(url, json=data, headers=headers, timeout=15)
+        response = session.post(url, json=data, timeout=15)
         if response.status_code != 200:
             return f'Error: {response.status_code}'
 
@@ -111,6 +124,8 @@ def getInfoPlayerBoost(id, data, level=None, skill=None):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "Origin": "https://renderz.app",
+            "Referer": "https://renderz.app/24/players",
         }
         rank = data
         level = level if level is not None else 0

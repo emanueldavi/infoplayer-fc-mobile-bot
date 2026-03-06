@@ -15,7 +15,6 @@ Punto de entrada del bot. Configura la aplicación de Telegram, los handlers y e
 | `main()` | 🚀 Inicializa y ejecuta el bot con polling |
 | `error_handler()` | ⚠️ Captura excepciones y notifica al owner |
 | `notificar_parada()` | 🛑 Envía mensaje cuando el bot se detiene |
-| `handle_webapp_data()` | 🌐 Procesa datos enviados desde la Web App |
 
 ---
 
@@ -27,7 +26,7 @@ Maneja todos los comandos y callbacks del bot.
 
 | Función | Descripción |
 |---------|-------------|
-| `start()` | 🏠 Bienvenida y botón de Web App |
+| `start()` | 🏠 Mensaje de bienvenida |
 | `help_command()` | ❓ Lista de comandos disponibles |
 | `player()` | 🔍 Búsqueda de jugadores |
 | `redeemCodes()` | 🎁 Códigos de canje activos |
