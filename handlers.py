@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
-from fc_api_client import get_player_stats
+from fc_api_client import get_player_stats, compare_players, get_top_players, _stat_value, STAT_KEYS
 from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
 
@@ -106,6 +106,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⚽️ ¡Bienvenido al bot de FC Mobile!\n\n"
         "📋 Comandos:\n"
         "🔍 /player <nombre> - Busca un jugador\n"
+        "⚔️ /compare <p1> <p2> - Compara jugadores\n"
+        "🏆 /top [stat] - Top 5 jugadores\n"
         "🎁 /code - Códigos de canje\n"
         "🆔 /id - ID del chat\n"
         "❓ /help - Ayuda"
@@ -117,6 +119,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📋 Comandos disponibles\n\n"
         "🏠 /start - Mensaje de bienvenida\n"
         "🔍 /player <nombre> - Busca un jugador por nombre\n"
+        "⚔️ /compare <p1> <p2> - Compara dos jugadores\n"
+        "🏆 /top [stat] - Top 5 por OVR o stat (pace, shooting, etc.)\n"
         "🎁 /code - Códigos de canje activos\n"
         "🆔 /id - ID del chat o grupo\n"
         "❓ /help - Esta ayuda\n\n"
@@ -234,6 +238,72 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             '🔍 Para buscar un jugador, escribe su nombre después del comando.\n\n'
             '📝 Ejemplo: /player Messi'
         )
+
+
+async def compare_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Compare two players' statistics."""
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "Usage:\n/compare <player1> <player2>\n\n"
+            "📝 Ejemplo: /compare messi ronaldo"
+        )
+        return
+    player1_name = context.args[0]
+    player2_name = " ".join(context.args[1:])
+    try:
+        p1, p2 = compare_players(player1_name, player2_name)
+    except Exception:
+        await update.message.reply_text("⚠️ Error al conectar con la API. Intenta más tarde.")
+        return
+    if p1.get("error"):
+        await update.message.reply_text(f"😕 No encontré a '{player1_name}'.")
+        return
+    if p2.get("error"):
+        await update.message.reply_text(f"😕 No encontré a '{player2_name}'.")
+        return
+    stats_order = [("ovr", "OVR"), ("pace", "PAC"), ("shooting", "SHO"), ("passing", "PAS"),
+                   ("dribbling", "DRI"), ("defending", "DEF"), ("physical", "PHY")]
+    lines = [
+        "⚔️ Player Comparison",
+        "",
+        f"{p1.get('name', '?')} vs {p2.get('name', '?')}",
+        "",
+    ]
+    for key, label in stats_order:
+        v1 = _stat_value(p1, key)
+        v2 = _stat_value(p2, key)
+        s1 = str(p1.get(key, 0))
+        s2 = str(p2.get(key, 0))
+        if v1 > v2:
+            lines.append(f"{label} : ⭐{s1} | {s2}")
+        elif v2 > v1:
+            lines.append(f"{label} : {s1} | ⭐{s2}")
+        else:
+            lines.append(f"{label} : {s1} | {s2}")
+    await update.message.reply_text("\n".join(lines))
+
+
+async def top_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show top 5 players by OVR or by a specific stat."""
+    stat_arg = context.args[0] if context.args else None
+    stat_key = STAT_KEYS.get((stat_arg or "").lower().strip(), "ovr")
+    stat_label = stat_arg.title() if stat_arg and stat_key != "ovr" else "OVR"
+    try:
+        players = get_top_players(stat_arg)
+    except Exception:
+        await update.message.reply_text("⚠️ Error al conectar con la API. Intenta más tarde.")
+        return
+    if not players:
+        await update.message.reply_text("😕 No se pudieron obtener datos de jugadores.")
+        return
+    lines = [f"🏆 Top Players by {stat_label}", ""]
+    medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+    for i, p in enumerate(players):
+        name = p.get("name", "?")
+        val = p.get(stat_key, 0)
+        lines.append(f"{medals[i]} {name} — {val}")
+    await update.message.reply_text("\n".join(lines))
+
 
 async def top10_command(update, context):
     chat_id = update.effective_chat.id

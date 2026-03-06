@@ -111,3 +111,65 @@ def get_player_stats(player_name: str) -> dict:
     cache[name_key] = result
     _save_cache(cache)
     return result
+
+
+def compare_players(player1: str, player2: str) -> tuple:
+    """
+    Fetch and return both player objects.
+    Returns (p1, p2) where each is a dict from get_player_stats.
+    Either can contain "error" key on failure.
+    """
+    p1 = get_player_stats(player1)
+    p2 = get_player_stats(player2)
+    return (p1, p2)
+
+
+TOP_PLAYERS_LIST = [
+    "messi",
+    "ronaldo",
+    "mbappe",
+    "haaland",
+    "neymar",
+    "de bruyne",
+    "kane",
+    "vinicius",
+    "salah",
+    "bellingham",
+]
+
+STAT_KEYS = {
+    "ovr": "ovr",
+    "pace": "pace",
+    "shooting": "shooting",
+    "passing": "passing",
+    "dribbling": "dribbling",
+    "defending": "defending",
+    "physical": "physical",
+}
+
+
+def _stat_value(data: dict, key: str) -> int:
+    """Extract numeric stat value from player data."""
+    val = data.get(key, 0)
+    if isinstance(val, int):
+        return val
+    try:
+        return int(str(val).strip()) if val else 0
+    except (ValueError, TypeError):
+        return 0
+
+
+def get_top_players(stat: str | None = None) -> list[dict]:
+    """
+    Fetch stats for popular players and return top 5 sorted by OVR or specified stat.
+    Returns list of player dicts (with name, ovr, and the sort stat).
+    """
+    stat_key = STAT_KEYS.get((stat or "").lower().strip(), "ovr")
+    results = []
+    for name in TOP_PLAYERS_LIST:
+        data = get_player_stats(name)
+        if data.get("error"):
+            continue
+        results.append(data)
+    results.sort(key=lambda p: _stat_value(p, stat_key), reverse=True)
+    return results[:5]

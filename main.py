@@ -2,7 +2,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 from telegram import Bot
 import os
 import sys
-from handlers import start, player, help_command, botones_callback, group_id, redeemCodes
+from handlers import start, player, help_command, botones_callback, group_id, redeemCodes, compare_command, top_command
 import logging
 from dotenv import load_dotenv
 
@@ -56,6 +56,8 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('player', player))
+    app.add_handler(CommandHandler('compare', compare_command))
+    app.add_handler(CommandHandler('top', top_command))
     app.add_handler(CommandHandler('code', redeemCodes))
     app.add_handler(CommandHandler('id', group_id))
     app.add_handler(CommandHandler('help', help_command))
