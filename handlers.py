@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
 from fc_api_client import get_player_stats, compare_players, get_top_players, _stat_value, STAT_KEYS
+from renderz_client import get_player_stats as get_player_stats_renderz
 from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
 
@@ -213,6 +214,13 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data = get_player_stats(name)
         except Exception:
             data = {"error": "connection_error"}
+        if data.get("error"):
+            try:
+                fallback = get_player_stats_renderz(name)
+                if fallback and not fallback.get("error"):
+                    data = fallback
+            except Exception:
+                pass
 
         if data.get("error") == "player_not_found":
             await update.message.reply_text(
