@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.error import BadRequest
 from scraper import searchPlayer, getInfoPlayerBoost, getRedeemCodes, getSkillsName
+from renderz_client import get_player_stats
 from str import POSICIONES_ES, RANK_ES, WORK_ES
 from btns import getButtonsE
 
@@ -131,29 +132,59 @@ async def group_id(update: Update, context):
         f"🆔 ID de este chat/grupo:\n\n📌 {chat_id}"
     )
 
+def _format_player_stats(data: dict) -> str:
+    """Formatea las estadísticas del jugador para Telegram."""
+    if data.get("error"):
+        return None
+    name = data.get("name", "Unknown")
+    ovr = data.get("ovr", 0)
+    pos = data.get("position", "N/A")
+    return (
+        f"⭐ {name}\n"
+        f"OVR: {ovr}\n"
+        f"POS: {pos}\n\n"
+        f"PAC: {data.get('pace', 0)}\n"
+        f"SHO: {data.get('shooting', 0)}\n"
+        f"PAS: {data.get('passing', 0)}\n"
+        f"DRI: {data.get('dribbling', 0)}\n"
+        f"DEF: {data.get('defending', 0)}\n"
+        f"PHY: {data.get('physical', 0)}"
+    )
+
+
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         name = " ".join(context.args)
-        resultado = searchPlayer(name)
-
-        # Error de conexión con la API
-        if isinstance(resultado, str) and resultado.startswith('Error:'):
+        try:
+            data = get_player_stats(name)
+        except Exception as e:
             await update.message.reply_text(
-                '⚠️ Error al conectar con la base de datos.\n\n'
+                '⚠️ Error al conectar con RenderZ.\n\n'
                 '🔄 Intenta de nuevo en unos minutos.'
             )
             return
 
-        # Jugadores encontrados
-        if isinstance(resultado, list) and resultado:
-            await showPlayer(update, context, resultado)
+        if data.get("error") == "player_not_found":
+            await update.message.reply_text(
+                '😕 No encontré ningún jugador con ese nombre.\n\n'
+                '🔄 Intenta con otro nombre o verifica la ortografía.'
+            )
             return
 
-        # No se encontraron jugadores
-        await update.message.reply_text(
-            '😕 No encontré ningún jugador con ese nombre.\n\n'
-            '🔄 Intenta con otro nombre o verifica la ortografía.'
-        )
+        if data.get("error") == "scrape_failed":
+            await update.message.reply_text(
+                '⚠️ No se pudieron obtener las estadísticas.\n\n'
+                '🔄 Intenta de nuevo más tarde.'
+            )
+            return
+
+        msg = _format_player_stats(data)
+        if msg:
+            await update.message.reply_text(msg)
+        else:
+            await update.message.reply_text(
+                '😕 No encontré ningún jugador con ese nombre.'
+            )
     else:
         await update.message.reply_text(
             '🔍 Para buscar un jugador, escribe su nombre después del comando.\n\n'
