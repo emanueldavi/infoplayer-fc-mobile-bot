@@ -15,7 +15,7 @@ def construir_mensaje_y_botones(jugador, stats, grl=None, skill=False):
     rango = jugador.get('rank', 0)
     rango_es = RANK_ES.get(str(rango), rango)
     position2 = jugador.get('potentialPositions', [])
-    playerId = jugador.get('assetId', 'N/A')
+    playerId = jugador.get('assetId') or jugador.get('playerId') or 'N/A'
     if isinstance(position2, list):
         posiciones_secundarias_es = [POSICIONES_ES.get(pos, pos) for pos in position2]
         posiciones_secundarias_str = ', '.join(posiciones_secundarias_es) if posiciones_secundarias_es else 'N/A'
@@ -237,7 +237,7 @@ async def showPlayer(update, context, players, callback_prefix="select_"):
             unicos.append(transferibles[0])
         else:
             unicos.append(grupo[0])
-    # Botones
+    # Botones (assetId para API upgrade, fallback a playerId si no existe)
     keyboard = []
     for jugador in unicos[:10]:
         program = jugador.get('source', 'N/A').split('_')
@@ -246,8 +246,9 @@ async def showPlayer(update, context, players, callback_prefix="select_"):
         if not nombre:
             nombre = f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
         texto = f"{POSICIONES_ES.get(jugador.get('position', 'N/A'), jugador.get('position', 'N/A'))}, {nombre}, {jugador.get('rating', 'N/A')} {program}"
-        player_asset_id = jugador.get('assetId')
-        keyboard.append([InlineKeyboardButton(texto, callback_data=f"{callback_prefix}{player_asset_id}")])
+        player_asset_id = jugador.get('assetId') or jugador.get('playerId')
+        if player_asset_id is not None:
+            keyboard.append([InlineKeyboardButton(texto, callback_data=f"{callback_prefix}{player_asset_id}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     msg = await update.message.reply_text(
         "👆 Elige el jugador que quieres ver:\n\n⚽️ Selecciona uno de los botones de abajo 👇",
@@ -290,12 +291,18 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         jugador_id = partes[1] if len(partes) > 1 else None
         if jugador_id:
             resultado = getInfoPlayerBoost(jugador_id, rango[4:])
+            if not isinstance(resultado, dict):
+                await query.answer(text="⚠️ Error al obtener datos del jugador. Intenta de nuevo.", show_alert=True)
+                return
             player_data = resultado.get('playerData', {})
-            stats = player_data.get('avgStats', {})
-            stats['stamina'] = player_data.get('stats', {}).get('sta', 0)
+            if jugador_original.get('position') == 'GK':
+                stats = dict(player_data.get('avgGkStats', {}))
+            else:
+                stats = dict(player_data.get('avgStats', {}))
+                stats['stamina'] = (player_data.get('stats') or {}).get('sta', 0)
 
             grl = player_data.get('rating', jugador_original.get('rating', 'N/A'))
-            jugador_original['rank'] = player_data.get('rank', 0)            # Actualiza el jugador original con el nuevo rango
+            jugador_original['rank'] = player_data.get('rank', 0)
             context.user_data['jugador_original'] = jugador_original
             mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, grl)
             try:
@@ -316,25 +323,31 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         nivel = partes[0]
         jugador_id = partes[1] if len(partes) > 1 else None
         nivel_num = int(nivel[5:]) if nivel[5:].isdigit() else 0
-        if jugador_id:
-            rank = int(jugador_original.get('rank', 0))
-            limites = {0: 5, 1: 10, 2: 15, 3: 20, 4: 25, 5: 30}
-            limite = limites.get(rank, 0)
+        rank = int(jugador_original.get('rank', 0))
+        if not jugador_id:
+            await query.edit_message_text("😕 No pude obtener el ID del jugador. Intenta de nuevo.")
+            return
+        limites = {0: 5, 1: 10, 2: 15, 3: 20, 4: 25, 5: 30}
+        limite = limites.get(rank, 0)
+        if nivel_num > limite:
+            await query.answer(
+                text=f"❌ Elegiste nivel {nivel_num}, pero el rango {rank} solo permite hasta nivel {limite}.",
+                show_alert=True
+            )
+            return
 
-            if nivel_num > limite:
-                await query.answer(
-                    text=f"❌ Elegiste nivel {nivel_num}, pero el rango {rank} solo permite hasta nivel {limite}.",
-                    show_alert=True
-                )
-                return
-
-        resultado = getInfoPlayerBoost(jugador_id, rank, level=nivel_num, skill=jugador_original.get('skillUpgrades', []))
-        jugador_original['level'] = nivel_num  # Actualiza o agrega el nivel del jugador original
-        
+        resultado = getInfoPlayerBoost(jugador_id, str(rank), level=nivel_num, skill=jugador_original.get('skillUpgrades', []))
+        if not isinstance(resultado, dict):
+            await query.answer(text="⚠️ Error al obtener datos del jugador. Intenta de nuevo.", show_alert=True)
+            return
         player_data = resultado.get('playerData', {})
-        stats = player_data.get('avgStats', {})
-        stats['stamina'] = player_data.get('stats', {}).get('sta', 0)
+        if jugador_original.get('position') == 'GK':
+            stats = dict(player_data.get('avgGkStats', {}))
+        else:
+            stats = dict(player_data.get('avgStats', {}))
+            stats['stamina'] = (player_data.get('stats') or {}).get('sta', 0)
 
+        jugador_original['level'] = nivel_num
         mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'))
         try:
             await query.edit_message_text(mensaje, reply_markup=reply_markup)
@@ -352,20 +365,27 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         jugador_id = partes[1] if len(partes) > 1 else None
         if jugador_id:
             resultado = getInfoPlayerBoost(jugador_id, '0')
+            if not isinstance(resultado, dict):
+                await query.answer(text="⚠️ Error al reiniciar. Intenta de nuevo.", show_alert=True)
+                return
             player_data = resultado.get('playerData', {})
-            stats = player_data.get('avgStats', {})
+            if jugador_original.get('position') == 'GK':
+                stats = dict(player_data.get('avgGkStats', {}))
+            else:
+                stats = dict(player_data.get('avgStats', {}))
+                stats['stamina'] = (player_data.get('stats') or {}).get('sta', 0)
+
             grl = player_data.get('rating', jugador_original.get('rating', 'N/A'))
             jugador_original['rank'] = 0
-            jugador_original['level'] = 0  # Reiniciar nivel a 0
-            jugador_original['skillUpgrades'] = []  # Reiniciar habilidades
-            stats['stamina'] = player_data.get('stats', {}).get('sta', 'N/A')  # Reiniciar resistencia a 0
+            jugador_original['level'] = 0
+            jugador_original['skillUpgrades'] = []
+            context.user_data['jugador_original'] = jugador_original
 
             mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, grl)
             try:
                 await query.edit_message_text(mensaje, reply_markup=reply_markup)
             except BadRequest as e:
                 if "Message is not modified" in str(e):
-                    # No hacer nada si el mensaje no cambió
                     pass
                 else:
                     raise    
@@ -393,7 +413,10 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith('select_'):
         player_id = data.split('_')[1]
         players = context.user_data.get('player_search_results', [])
-        jugador = next((p for p in players if str(p.get('assetId')) == player_id), None)
+        jugador = next(
+            (p for p in players if str(p.get('assetId')) == player_id or str(p.get('playerId')) == player_id),
+            None
+        )
         
         if jugador:
             # Obtener datos completos con estadísticas (la búsqueda puede no incluir avgStats)
@@ -483,16 +506,21 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             resultado = getInfoPlayerBoost(
                 player_id,
-                jugador_original.get('rank', 0),
+                str(jugador_original.get('rank', 0)),
                 jugador_original.get('level', 0),
-                skill=[s for s in skills if s.get('level', 0) > 0]  # Solo habilidades con nivel > 0
+                skill=[s for s in skills if s.get('level', 0) > 0]
             )
-
+            if not isinstance(resultado, dict):
+                await query.answer(text="⚠️ Error al actualizar habilidades. Intenta de nuevo.", show_alert=True)
+                return
             try:
                 player_data = resultado.get('playerData', {})
                 jugador_original['skillUpgrades'] = player_data.get('skillUpgrades', [])
-                stats = player_data.get('avgStats', {})
-                stats['stamina'] = player_data.get('stats', {}).get('sta', 'N/A')  # Reiniciar resistencia a 0
+                if jugador_original.get('position') == 'GK':
+                    stats = dict(player_data.get('avgGkStats', {}))
+                else:
+                    stats = dict(player_data.get('avgStats', {}))
+                    stats['stamina'] = (player_data.get('stats') or {}).get('sta', 0)
 
                 mensaje, reply_markup = construir_mensaje_y_botones(jugador_original, stats, player_data.get('rating', 'N/A'), skill=True)
                 await query.edit_message_text(mensaje, reply_markup=query.message.reply_markup)

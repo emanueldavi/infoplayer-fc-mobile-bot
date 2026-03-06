@@ -107,26 +107,32 @@ def getInfoPlayer(id):
 def getInfoPlayerBoost(id, data, level=None, skill=None):
     try:
         url = getUrlUpgrade(id)
-        rank = data
-        level = level if level is not None else 0 # Default to level 30 if not provided
-        skill = skill if skill is not None else [] # Default to empty list if not provided
-        data = {
-            "upgradeModels": {
-              "level": level,
-              "rankUp": rank,
-              
-              "skillUpgrades": skill
-          },
-          "playerId": id
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
-        response = requests.post(url, json=data)
+        rank = data
+        level = level if level is not None else 0
+        skill = skill if skill is not None else []
+        payload = {
+            "upgradeModels": {
+                "level": level,
+                "rankUp": rank,
+                "skillUpgrades": skill
+            },
+            "playerId": id
+        }
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         if response.status_code == 200:
             return response.json()
-              # Devuelve la respuesta JSON del servidor
-        else:
-            return f'Error: {response.status_code}'
+        return f'Error: {response.status_code}'
+    except requests.exceptions.Timeout:
+        return 'Error: Timeout'
+    except requests.exceptions.RequestException as e:
+        return f'Error: {e}'
     except Exception as e:
-      return f'Error: {e}'
+        return f'Error: {e}'
     
 
 def getRedeemCodes():
