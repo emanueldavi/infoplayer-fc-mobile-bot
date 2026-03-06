@@ -152,17 +152,60 @@ def _format_player_stats(data: dict) -> str:
     )
 
 
+def _fallback_player_from_scraper(name: str) -> dict | None:
+    """Fallback: usa searchPlayer + getInfoPlayerBoost cuando renderz_client falla."""
+    try:
+        result = searchPlayer(name)
+        if not result or isinstance(result, str):
+            return None
+        players = result if isinstance(result, list) else [result]
+        if not players:
+            return None
+        jugador = players[0]
+        asset_id = str(jugador.get("assetId") or jugador.get("playerId") or "")
+        if not asset_id:
+            return None
+        boost = getInfoPlayerBoost(asset_id, "0")
+        if not isinstance(boost, dict):
+            return None
+        pd = boost.get("playerData", boost)
+        if isinstance(pd, dict):
+            stats = pd.get("avgStats", jugador.get("avgStats", {}))
+            if jugador.get("position") == "GK":
+                stats = pd.get("avgGkStats", jugador.get("avgGkStats", {}))
+            if not isinstance(stats, dict):
+                stats = {}
+            nombre = jugador.get("commonName") or f"{jugador.get('firstName', '')} {jugador.get('lastName', '')}".strip()
+            return {
+                "name": nombre or pd.get("commonName", "Unknown"),
+                "ovr": pd.get("rating", jugador.get("rating", 0)),
+                "position": jugador.get("position", pd.get("position", "N/A")),
+                "pace": stats.get("avg1", 0),
+                "shooting": stats.get("avg2", 0),
+                "passing": stats.get("avg3", 0),
+                "dribbling": stats.get("avg4", 0),
+                "defending": stats.get("avg5", 0),
+                "physical": stats.get("avg6", 0),
+                "url": f"https://renderz.app/24/player/{asset_id}",
+            }
+        return None
+    except Exception:
+        return None
+
+
 async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         name = " ".join(context.args)
         try:
             data = get_player_stats(name)
-        except Exception as e:
-            await update.message.reply_text(
-                '⚠️ Error al conectar con RenderZ.\n\n'
-                '🔄 Intenta de nuevo en unos minutos.'
-            )
-            return
+        except Exception:
+            data = {"error": "connection_error"}
+
+        # Si falla RenderZ client, intentar scraper antiguo
+        if data.get("error"):
+            fallback = _fallback_player_from_scraper(name)
+            if fallback:
+                data = fallback
 
         if data.get("error") == "player_not_found":
             await update.message.reply_text(
@@ -171,7 +214,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if data.get("error") == "scrape_failed":
+        if data.get("error") in ("scrape_failed", "connection_error"):
             await update.message.reply_text(
                 '⚠️ No se pudieron obtener las estadísticas.\n\n'
                 '🔄 Intenta de nuevo más tarde.'

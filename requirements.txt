@@ -2,6 +2,7 @@ python-telegram-bot==20.7
 httpx
 requests
 cloudscraper
+curl_cffi
 beautifulsoup4
 pillow
 python-dotenv

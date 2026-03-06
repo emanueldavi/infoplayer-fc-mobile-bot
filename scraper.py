@@ -2,10 +2,44 @@ import requests
 from bs4 import BeautifulSoup
 
 try:
+    from curl_cffi.requests import Session as CurlSession
+    HAS_CURL_CFFI = True
+except ImportError:
+    HAS_CURL_CFFI = False
+
+try:
     import cloudscraper
     HAS_CLOUDSCRAPER = True
 except ImportError:
     HAS_CLOUDSCRAPER = False
+
+_RENDERZ_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Origin": "https://renderz.app",
+    "Referer": "https://renderz.app/24/players",
+}
+
+
+def _get_renderz_session():
+    """Sesión HTTP que evita bloqueos (curl_cffi > cloudscraper > requests)."""
+    if HAS_CURL_CFFI:
+        s = CurlSession(impersonate="chrome110")
+        s.headers.update(_RENDERZ_HEADERS)
+        return s
+    if HAS_CLOUDSCRAPER:
+        s = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "windows", "mobile": False}
+        )
+        s.headers.update(_RENDERZ_HEADERS)
+        return s
+    s = requests.Session()
+    s.headers.update({
+        **_RENDERZ_HEADERS,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    })
+    return s
+
 
 def getStringSkills(id, url):
     cookies = {'locale': 'es-ES'}  # Cambia 'language' por el nombre real de la cookie si es diferente
@@ -31,18 +65,9 @@ def getSkillsName(idPlayer, skills,):
 def searchPlayer(name):
     """Busca jugadores en la API de Renderz. Retorna lista de jugadores o string con error."""
     try:
-        if HAS_CLOUDSCRAPER:
-            session = cloudscraper.create_scraper(
-                browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
-            )
-        else:
-            session = requests.Session()
-        session.headers.update({
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Origin": "https://renderz.app",
-            "Referer": "https://renderz.app/24/players",
-        })
+        session = _get_renderz_session()
+        # Visitar página primero para cookies
+        session.get("https://renderz.app/24/players", timeout=15)
         url = 'https://renderz.app/api/search/elasticsearch'
         data = {
             "query": {
@@ -119,14 +144,9 @@ def getInfoPlayer(id):
     
 def getInfoPlayerBoost(id, data, level=None, skill=None):
     try:
+        session = _get_renderz_session()
+        session.get("https://renderz.app/24/players", timeout=15)
         url = getUrlUpgrade(id)
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Origin": "https://renderz.app",
-            "Referer": "https://renderz.app/24/players",
-        }
         rank = data
         level = level if level is not None else 0
         skill = skill if skill is not None else []
@@ -138,7 +158,7 @@ def getInfoPlayerBoost(id, data, level=None, skill=None):
             },
             "playerId": id
         }
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        response = session.post(url, json=payload, timeout=15)
         if response.status_code == 200:
             return response.json()
         return f'Error: {response.status_code}'
