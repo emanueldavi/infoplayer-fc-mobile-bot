@@ -272,25 +272,33 @@ async def compare_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if p2.get("error"):
         await update.message.reply_text(f"😕 No encontré a '{player2_name}'.")
         return
-    stats_order = [("ovr", "OVR"), ("pace", "PAC"), ("shooting", "SHO"), ("passing", "PAS"),
-                   ("dribbling", "DRI"), ("defending", "DEF"), ("physical", "PHY")]
-    lines = [
-        "⚔️ Player Comparison",
-        "",
-        f"{p1.get('name', '?')} vs {p2.get('name', '?')}",
-        "",
+    stats_order = [
+        ("ovr", "#⃣ GRL"),
+        ("pace", "⚡ Velocidad"),
+        ("shooting", "🎯 Disparo"),
+        ("passing", "⚽ Pase"),
+        ("dribbling", "😎 Regate"),
+        ("defending", "💥 Defensa"),
+        ("physical", "💪 Físico"),
     ]
-    for key, label in stats_order:
+    lines = [
+        "⚔️ Comparación de jugadores",
+        "",
+        f"👤 {p1.get('name', '?')} vs 👤 {p2.get('name', '?')}",
+        "",
+        "📊 Estadísticas:",
+    ]
+    for key, emoji_label in stats_order:
         v1 = _stat_value(p1, key)
         v2 = _stat_value(p2, key)
         s1 = str(p1.get(key, 0))
         s2 = str(p2.get(key, 0))
         if v1 > v2:
-            lines.append(f"{label} : ⭐{s1} | {s2}")
+            lines.append(f"{emoji_label}: ⭐{s1} | {s2}")
         elif v2 > v1:
-            lines.append(f"{label} : {s1} | ⭐{s2}")
+            lines.append(f"{emoji_label}: {s1} | ⭐{s2}")
         else:
-            lines.append(f"{label} : {s1} | {s2}")
+            lines.append(f"{emoji_label}: {s1} | {s2}")
     await update.message.reply_text("\n".join(lines))
 
 
@@ -307,7 +315,7 @@ async def top_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not players:
         await update.message.reply_text("😕 No se pudieron obtener datos de jugadores.")
         return
-    lines = [f"🏆 Top Players by {stat_label}", ""]
+    lines = [f"🏆 Top 5 por {stat_label}", ""]
     medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     for i, p in enumerate(players):
         name = p.get("name", "?")

@@ -4,6 +4,7 @@ Uses requests and JSON file caching.
 """
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import quote
 
 import requests
@@ -119,22 +120,14 @@ def compare_players(player1: str, player2: str) -> tuple:
     Returns (p1, p2) where each is a dict from get_player_stats.
     Either can contain "error" key on failure.
     """
-    p1 = get_player_stats(player1)
-    p2 = get_player_stats(player2)
+    p1 = _get_player_stats_with_fallback(player1)
+    p2 = _get_player_stats_with_fallback(player2)
     return (p1, p2)
 
 
 TOP_PLAYERS_LIST = [
-    "messi",
-    "ronaldo",
-    "mbappe",
-    "haaland",
-    "neymar",
-    "de bruyne",
-    "kane",
-    "vinicius",
-    "salah",
-    "bellingham",
+    "messi", "ronaldo", "mbappe", "haaland", "neymar",
+    "de bruyne", "kane", "vinicius", "salah", "bellingham",
 ]
 
 STAT_KEYS = {
@@ -159,17 +152,32 @@ def _stat_value(data: dict, key: str) -> int:
         return 0
 
 
+def _get_player_stats_with_fallback(name: str) -> dict:
+    """Obtiene stats: intenta fc_api, si falla usa renderz."""
+    data = get_player_stats(name)
+    if data.get("error"):
+        try:
+            from renderz_client import get_player_stats as get_renderz
+            fallback = get_renderz(name)
+            if fallback and not fallback.get("error"):
+                return fallback
+        except Exception:
+            pass
+    return data
+
+
 def get_top_players(stat: str | None = None) -> list[dict]:
     """
-    Fetch stats for popular players and return top 5 sorted by OVR or specified stat.
-    Returns list of player dicts (with name, ovr, and the sort stat).
+    Top 5 jugadores por OVR o stat. Consulta API en tiempo real (llamadas en paralelo).
+    Fallback a RenderZ si fc_api falla.
     """
     stat_key = STAT_KEYS.get((stat or "").lower().strip(), "ovr")
     results = []
-    for name in TOP_PLAYERS_LIST:
-        data = get_player_stats(name)
-        if data.get("error"):
-            continue
-        results.append(data)
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(_get_player_stats_with_fallback, name): name for name in TOP_PLAYERS_LIST}
+        for future in as_completed(futures):
+            data = future.result()
+            if data and not data.get("error"):
+                results.append(data)
     results.sort(key=lambda p: _stat_value(p, stat_key), reverse=True)
     return results[:5]
