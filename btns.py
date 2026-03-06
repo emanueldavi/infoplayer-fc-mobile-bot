@@ -10,7 +10,7 @@ def getButtonsE(playerId: str) -> list:
     """
     return [
         [
-            InlineKeyboardButton("Rangos", callback_data='ignoreRank'),
+            InlineKeyboardButton("📊 Rangos", callback_data='ignoreRank'),
         ],
         [
             InlineKeyboardButton("⚪️", callback_data=f'rank0_{playerId}'),
@@ -21,7 +21,7 @@ def getButtonsE(playerId: str) -> list:
             InlineKeyboardButton("🟠", callback_data=f'rank5_{playerId}'),
         ],
         [
-            InlineKeyboardButton("Entrenamientos", callback_data='ignoreLevels'),
+            InlineKeyboardButton("📈 Entrenamientos", callback_data='ignoreLevels'),
         ],
         [
             InlineKeyboardButton("5", callback_data=f'level5_{playerId}'),
@@ -32,13 +32,11 @@ def getButtonsE(playerId: str) -> list:
             InlineKeyboardButton("30", callback_data=f'level30_{playerId}'),
         ],
         [
-            InlineKeyboardButton("Habilidades", callback_data=f'skillUnlock_{playerId}'),
+            InlineKeyboardButton("🪄 Habilidades", callback_data=f'skillUnlock_{playerId}'),
         ],
         [
-            InlineKeyboardButton("Reiniciar", callback_data=f'resetAll_{playerId}'),
+            InlineKeyboardButton("🔄 Reiniciar todo", callback_data=f'resetAll_{playerId}'),
         ]
-
-
     ]
 
 def getButtonsH(playerId: str) -> list:

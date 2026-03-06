@@ -1,8 +1,9 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler
 from telegram import Bot, Update
 from telegram.ext import ContextTypes
 import os
-from handlers import start, player , help_command, botones_callback, group_id, redeemCodes
+import sys
+from handlers import start, player, help_command, botones_callback, group_id, redeemCodes
 import logging
 from dotenv import load_dotenv
 
@@ -10,6 +11,10 @@ load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 GROUP_ID = os.getenv("GROUP_ID")
+
+if not TOKEN:
+    print("❌ Error: TOKEN no está definido en las variables de entorno (.env)")
+    sys.exit(1)
 
 # Configura el logging
 logging.basicConfig(
@@ -30,7 +35,7 @@ async def error_handler(update, context):
         print(f"Error enviando notificación de error al creador: {e}")
     
     if update and update.effective_message:
-        await update.effective_message.reply_text("Ocurrió un error inesperado. Intenta de nuevo más tarde.")
+        await update.effective_message.reply_text("😕 Ocurrió un error inesperado. Intenta de nuevo más tarde.")
 
 async def notificar_parada():
     """Notifica al creador cuando el bot se detiene"""
@@ -39,7 +44,7 @@ async def notificar_parada():
         owner_id = os.getenv('OWNER_ID')
         if owner_id:
             await bot.send_message(chat_id=owner_id, text="🛑 El bot se ha detenido.")
-        if GROUP_ID:
+        if GROUP_ID and str(GROUP_ID).strip():
             await bot.send_message(chat_id=GROUP_ID, text="🛑 El bot se ha detenido.")
     except Exception as e:
         print(f"Error enviando mensaje de parada al creador: {e}")
@@ -51,7 +56,7 @@ async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Aquí puedes procesar los datos recibidos desde la mini app
     print(f"Datos recibidos de la mini app: {data}")
     await update.effective_message.reply_text(
-        f"¡Recibido desde la mini app!\nUsuario: {user.first_name}\nDatos: {data}"
+        f"✅ ¡Datos recibidos!\n\n👤 Usuario: {user.first_name}\n📦 Datos: {data}"
     )
 
 def main():
@@ -62,6 +67,13 @@ def main():
     app.add_handler(CommandHandler('id', group_id))
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CallbackQueryHandler(botones_callback))
+
+    # Handler para datos de la Web App
+    def web_app_data_filter(update: Update) -> bool:
+        msg = update.message or update.edited_message
+        return msg is not None and getattr(msg, 'web_app_data', None) is not None
+
+    app.add_handler(MessageHandler(web_app_data_filter, handle_webapp_data))
     app.add_error_handler(error_handler)
 
     # Enviar mensaje al creador al iniciar
@@ -71,7 +83,7 @@ def main():
             owner_id = os.getenv('OWNER_ID')
             if owner_id:
                 await bot.send_message(chat_id=owner_id, text="✅ El bot se ha iniciado correctamente.")
-            if GROUP_ID:
+            if GROUP_ID and str(GROUP_ID).strip():
                 await bot.send_message(chat_id=GROUP_ID, text="✅ El bot se ha iniciado correctamente.")
         except Exception as e:
             print(f"Error enviando mensaje al creador: {e}")

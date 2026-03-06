@@ -84,6 +84,7 @@ def getUrlPlayer(id):
 
 def getInfoPlayer(id):
     try:
+        url = getUrlPlayer(id)
         response = requests.get(url)
         if response.status_code == 200:
             return response.text  # Devuelve el contenido HTML de la página
@@ -137,10 +138,12 @@ def getRedeemCodes():
               code = redeem_data[i]
               reward = redeem_data[i+1]
               expired = redeem_data[i+2]
-              if(i == 3):
-                isExpired = True if redeem_data[i+4]['expired'] == 6 else False
-              else:
-                isExpired = True if redeem_data[i+3]['expired'] == 6 else False
+              # Buscar el objeto con 'expired' en los siguientes elementos
+              isExpired = False
+              for j in range(i+3, min(i+5, len(redeem_data))):
+                  if isinstance(redeem_data[j], dict) and 'expired' in redeem_data[j]:
+                      isExpired = redeem_data[j]['expired'] == 6
+                      break
 
               codes.append({
                   "code": code,
@@ -149,7 +152,7 @@ def getRedeemCodes():
                   "isExpired": isExpired
               })
               i += 4
-          except IndexError:
+          except (IndexError, KeyError, TypeError):
               break
       else:
           i += 1
