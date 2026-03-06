@@ -26,15 +26,15 @@ BASE_URL = "https://renderz.app"
 
 # Jugadores populares como último recurso cuando la API falla (403, etc.)
 FALLBACK_PLAYERS = {
-    "messi": {"name": "Lionel Messi", "ovr": 95, "position": "RW", "pace": 89, "shooting": 94, "passing": 97, "dribbling": 98, "defending": 40, "physical": 75, "url": f"https://renderz.app/24/player/158023"},
-    "ronaldo": {"name": "Cristiano Ronaldo", "ovr": 94, "position": "ST", "pace": 90, "shooting": 95, "passing": 82, "dribbling": 89, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/20801"},
-    "mbappé": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747"},
-    "mbappe": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747"},
-    "haaland": {"name": "Erling Haaland", "ovr": 94, "position": "ST", "pace": 89, "shooting": 96, "passing": 72, "dribbling": 82, "defending": 45, "physical": 93, "url": "https://renderz.app/24/player/239085"},
-    "vinicius": {"name": "Vinícius Jr.", "ovr": 93, "position": "LW", "pace": 97, "shooting": 84, "passing": 82, "dribbling": 95, "defending": 35, "physical": 72, "url": "https://renderz.app/24/player/231650"},
-    "bellingham": {"name": "Jude Bellingham", "ovr": 92, "position": "CM", "pace": 84, "shooting": 86, "passing": 88, "dribbling": 90, "defending": 78, "physical": 85, "url": "https://renderz.app/24/player/246173"},
-    "lamine yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643"},
-    "yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643"},
+    "messi": {"name": "Lionel Messi", "ovr": 95, "position": "RW", "pace": 89, "shooting": 94, "passing": 97, "dribbling": 98, "defending": 40, "physical": 75, "url": "https://renderz.app/24/player/158023", "asset_id": "158023"},
+    "ronaldo": {"name": "Cristiano Ronaldo", "ovr": 94, "position": "ST", "pace": 90, "shooting": 95, "passing": 82, "dribbling": 89, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/20801", "asset_id": "20801"},
+    "mbappé": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747", "asset_id": "231747"},
+    "mbappe": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747", "asset_id": "231747"},
+    "haaland": {"name": "Erling Haaland", "ovr": 94, "position": "ST", "pace": 89, "shooting": 96, "passing": 72, "dribbling": 82, "defending": 45, "physical": 93, "url": "https://renderz.app/24/player/239085", "asset_id": "239085"},
+    "vinicius": {"name": "Vinícius Jr.", "ovr": 93, "position": "LW", "pace": 97, "shooting": 84, "passing": 82, "dribbling": 95, "defending": 35, "physical": 72, "url": "https://renderz.app/24/player/231650", "asset_id": "231650"},
+    "bellingham": {"name": "Jude Bellingham", "ovr": 92, "position": "CM", "pace": 84, "shooting": 86, "passing": 88, "dribbling": 90, "defending": 78, "physical": 85, "url": "https://renderz.app/24/player/246173", "asset_id": "246173"},
+    "lamine yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643", "asset_id": "277643"},
+    "yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643", "asset_id": "277643"},
 }
 PLAYERS_URL = f"{BASE_URL}/24/players"
 PLAYER_PAGE_URL = f"{BASE_URL}/24/player"
@@ -278,6 +278,7 @@ def get_player_stats(player_name: str) -> dict:
         "defending": data.get("defending", 0),
         "physical": data.get("physical", 0),
         "url": data.get("url", f"{PLAYER_PAGE_URL}/{asset_id}"),
+        "asset_id": asset_id,
     }
     cache[name_key] = result
     _save_cache(cache)
