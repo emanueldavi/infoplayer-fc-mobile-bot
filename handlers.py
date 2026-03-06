@@ -138,17 +138,25 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         name = " ".join(context.args)
         resultado = searchPlayer(name)
-        if isinstance(resultado, dict) and 'players' in resultado:
-            players = resultado['players']
-            if players:
-                # Agrupar por (bindingXml, playerId) y mostrar solo el transferible si existe, si no el primero
-                await showPlayer(update, context, players)
-            else:
-                await update.message.reply_text('😕 No encontré ningún jugador con ese nombre. Intenta con otro.')
-        else:
+
+        # Error de conexión con la API
+        if isinstance(resultado, str) and resultado.startswith('Error:'):
             await update.message.reply_text(
-                '❌ Ese jugador no está en la base de datos de FC MOBILE.\n\n🔄 Intenta de nuevo con otro nombre.'
+                '⚠️ Error al conectar con la base de datos.\n\n'
+                '🔄 Intenta de nuevo en unos minutos.'
             )
+            return
+
+        # Jugadores encontrados
+        if isinstance(resultado, list) and resultado:
+            await showPlayer(update, context, resultado)
+            return
+
+        # No se encontraron jugadores
+        await update.message.reply_text(
+            '😕 No encontré ningún jugador con ese nombre.\n\n'
+            '🔄 Intenta con otro nombre o verifica la ortografía.'
+        )
     else:
         await update.message.reply_text(
             '🔍 Para buscar un jugador, escribe su nombre después del comando.\n\n'

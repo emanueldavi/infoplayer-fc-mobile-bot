@@ -23,50 +23,61 @@ def getSkillsName(idPlayer, skills,):
 
 
 def searchPlayer(name):
+    """Busca jugadores en la API de Renderz. Retorna lista de jugadores o string con error."""
     try:
         url = 'https://renderz.app/api/search/elasticsearch'
-        data = {
-  "query": {
-    "bool": {
-      "must": [
-        {
-          "query_string": {
-            "fields": [
-              "cardName",
-              "commonName",
-              "firstName",
-              "lastName"
-            ],
-            "query": ""+name+"*",
-          }
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
-      ],
-      "should": [],
-      "must_not": []
-    }
-  },
-  "sort": [
-    {
-      "rating": {
-        "order": "desc"
-      }
-    },
-    {
-      "assetId": {
-        "order": "desc"
-      }
-    }
-  ],
-  "_source": [],
-  "from": 0,
-  "size": 40
-}
-        response = requests.post(url, json=data)
-        if response.status_code == 200:
-            return response.json()
-              # Devuelve la respuesta JSON del servidor
-        else:
+        data = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "query_string": {
+                                "fields": ["cardName", "commonName", "firstName", "lastName"],
+                                "query": f"{name}*",
+                            }
+                        }
+                    ],
+                    "should": [],
+                    "must_not": []
+                }
+            },
+            "sort": [
+                {"rating": {"order": "desc"}},
+                {"assetId": {"order": "desc"}}
+            ],
+            "from": 0,
+            "size": 40
+        }
+        response = requests.post(url, json=data, headers=headers, timeout=15)
+        if response.status_code != 200:
             return f'Error: {response.status_code}'
+
+        result = response.json()
+
+        # Formato 1: API devuelve {"players": [...]}
+        if isinstance(result, dict) and 'players' in result:
+            return result['players']
+
+        # Formato 2: Elasticsearch estándar {"hits": {"hits": [{"_source": {...}}, ...]}}
+        hits = result.get('hits', {}).get('hits', [])
+        if hits:
+            players = []
+            for hit in hits:
+                doc = hit.get('_source', hit)
+                if isinstance(doc, dict) and (doc.get('assetId') or doc.get('commonName') or doc.get('playerId')):
+                    players.append(doc)
+            return players if players else None
+
+        return None
+    except requests.exceptions.Timeout:
+        return 'Error: Timeout'
+    except requests.exceptions.RequestException as e:
+        return f'Error: {e}'
     except Exception as e:
         return f'Error: {e}'
 
