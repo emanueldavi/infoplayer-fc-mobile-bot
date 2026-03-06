@@ -25,16 +25,31 @@ CACHE_FILE = "players_cache.json"
 BASE_URL = "https://renderz.app"
 
 # Jugadores populares como último recurso cuando la API falla (403, etc.)
+# Mapeo: clave de búsqueda (minúsculas) -> datos del jugador con asset_id
 FALLBACK_PLAYERS = {
     "messi": {"name": "Lionel Messi", "ovr": 95, "position": "RW", "pace": 89, "shooting": 94, "passing": 97, "dribbling": 98, "defending": 40, "physical": 75, "url": "https://renderz.app/24/player/158023", "asset_id": "158023"},
+    "lionel messi": {"name": "Lionel Messi", "ovr": 95, "position": "RW", "pace": 89, "shooting": 94, "passing": 97, "dribbling": 98, "defending": 40, "physical": 75, "url": "https://renderz.app/24/player/158023", "asset_id": "158023"},
     "ronaldo": {"name": "Cristiano Ronaldo", "ovr": 94, "position": "ST", "pace": 90, "shooting": 95, "passing": 82, "dribbling": 89, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/20801", "asset_id": "20801"},
+    "cristiano ronaldo": {"name": "Cristiano Ronaldo", "ovr": 94, "position": "ST", "pace": 90, "shooting": 95, "passing": 82, "dribbling": 89, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/20801", "asset_id": "20801"},
     "mbappé": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747", "asset_id": "231747"},
     "mbappe": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747", "asset_id": "231747"},
+    "kylian mbappé": {"name": "Kylian Mbappé", "ovr": 96, "position": "ST", "pace": 99, "shooting": 92, "passing": 84, "dribbling": 95, "defending": 38, "physical": 80, "url": "https://renderz.app/24/player/231747", "asset_id": "231747"},
     "haaland": {"name": "Erling Haaland", "ovr": 94, "position": "ST", "pace": 89, "shooting": 96, "passing": 72, "dribbling": 82, "defending": 45, "physical": 93, "url": "https://renderz.app/24/player/239085", "asset_id": "239085"},
+    "erling haaland": {"name": "Erling Haaland", "ovr": 94, "position": "ST", "pace": 89, "shooting": 96, "passing": 72, "dribbling": 82, "defending": 45, "physical": 93, "url": "https://renderz.app/24/player/239085", "asset_id": "239085"},
     "vinicius": {"name": "Vinícius Jr.", "ovr": 93, "position": "LW", "pace": 97, "shooting": 84, "passing": 82, "dribbling": 95, "defending": 35, "physical": 72, "url": "https://renderz.app/24/player/231650", "asset_id": "231650"},
+    "vinícius": {"name": "Vinícius Jr.", "ovr": 93, "position": "LW", "pace": 97, "shooting": 84, "passing": 82, "dribbling": 95, "defending": 35, "physical": 72, "url": "https://renderz.app/24/player/231650", "asset_id": "231650"},
     "bellingham": {"name": "Jude Bellingham", "ovr": 92, "position": "CM", "pace": 84, "shooting": 86, "passing": 88, "dribbling": 90, "defending": 78, "physical": 85, "url": "https://renderz.app/24/player/246173", "asset_id": "246173"},
+    "jude bellingham": {"name": "Jude Bellingham", "ovr": 92, "position": "CM", "pace": 84, "shooting": 86, "passing": 88, "dribbling": 90, "defending": 78, "physical": 85, "url": "https://renderz.app/24/player/246173", "asset_id": "246173"},
     "lamine yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643", "asset_id": "277643"},
     "yamal": {"name": "Lamine Yamal", "ovr": 108, "position": "RW", "pace": 127, "shooting": 114, "passing": 111, "dribbling": 127, "defending": 35, "physical": 78, "url": "https://renderz.app/24/player/277643", "asset_id": "277643"},
+    "beckham": {"name": "David Beckham", "ovr": 104, "position": "CM", "pace": 102, "shooting": 98, "passing": 114, "dribbling": 107, "defending": 80, "physical": 86, "url": "https://renderz.app/24/player/30903004", "asset_id": "30903004"},
+    "david beckham": {"name": "David Beckham", "ovr": 104, "position": "CM", "pace": 102, "shooting": 98, "passing": 114, "dribbling": 107, "defending": 80, "physical": 86, "url": "https://renderz.app/24/player/30903004", "asset_id": "30903004"},
+}
+
+# Mapeo nombre -> asset_id para búsqueda fuzzy cuando el nombre no coincide exactamente
+_KNOWN_ASSET_IDS = {
+    "messi": "158023", "ronaldo": "20801", "mbappe": "231747", "haaland": "239085",
+    "vinicius": "231650", "bellingham": "246173", "yamal": "277643", "beckham": "30903004",
 }
 PLAYERS_URL = f"{BASE_URL}/24/players"
 PLAYER_PAGE_URL = f"{BASE_URL}/24/player"
@@ -231,6 +246,18 @@ def _scrape_from_data_json(asset_id: str) -> dict | None:
         return None
 
 
+def _ensure_asset_id(data: dict) -> dict:
+    """Asegura que data tenga asset_id; lo extrae de url si falta."""
+    if data.get("asset_id"):
+        return data
+    url = data.get("url", "")
+    if url:
+        parts = url.rstrip("/").split("/")
+        if parts and parts[-1].isdigit():
+            data = {**data, "asset_id": parts[-1]}
+    return data
+
+
 def get_player_stats(player_name: str) -> dict:
     """
     Get player statistics from RenderZ.
@@ -244,12 +271,21 @@ def get_player_stats(player_name: str) -> dict:
     if name_key in cache:
         cached = cache[name_key]
         if isinstance(cached, dict) and "error" not in cached:
-            return cached
+            return _ensure_asset_id(cached)
         if isinstance(cached, dict) and cached.get("error") == "player_not_found":
             return cached
     asset_id = _search_player_id(player_name)
     if not asset_id:
-        # Cuando la API falla (403), usar base local de jugadores populares
+        # Búsqueda en jugadores conocidos (coincidencia parcial)
+        for known_name, aid in _KNOWN_ASSET_IDS.items():
+            if known_name in name_key or name_key in known_name:
+                fallback = next(
+                    (f.copy() for f in FALLBACK_PLAYERS.values() if f.get("asset_id") == aid),
+                    None
+                )
+                if fallback:
+                    return fallback
+                break
         if name_key in FALLBACK_PLAYERS:
             return FALLBACK_PLAYERS[name_key].copy()
         for key, fallback_data in FALLBACK_PLAYERS.items():

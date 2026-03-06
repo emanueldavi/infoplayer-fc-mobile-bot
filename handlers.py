@@ -235,11 +235,7 @@ async def player(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parts = data.get("url", "").rstrip("/").split("/")
                 if parts and parts[-1].isdigit():
                     asset_id = parts[-1]
-            keyboard = None
-            if asset_id:
-                boost = getInfoPlayerBoost(asset_id, "0")
-                if isinstance(boost, dict):
-                    keyboard = InlineKeyboardMarkup(getButtonsE(str(asset_id)))
+            keyboard = InlineKeyboardMarkup(getButtonsE(str(asset_id))) if asset_id else None
             sent = await update.message.reply_text(
                 msg,
                 reply_markup=keyboard
