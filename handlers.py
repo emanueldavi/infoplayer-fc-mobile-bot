@@ -136,7 +136,7 @@ async def group_id(update: Update, context):
     )
 
 def _format_player_stats(data: dict) -> str:
-    """Formatea las estadísticas del jugador para Telegram."""
+    """Formatea las estadísticas del jugador para Telegram (español, con emojis)."""
     if data.get("error"):
         return None
     name = data.get("name", "Desconocido")
@@ -150,17 +150,20 @@ def _format_player_stats(data: dict) -> str:
     defending = data.get("defending", 0)
     physical = data.get("physical", 0)
     lines = [
-        f"⭐ {name}",
-        f"Team: {team}" if team else None,
-        f"POS: {pos}",
-        f"OVR: {ovr}",
+        f"👤 Nombre: {name}",
+        f"🏟 Equipo: {team}" if team else None,
         "",
-        f"PAC: {pace}",
-        f"SHO: {shooting}",
-        f"PAS: {passing}",
-        f"DRI: {dribbling}",
-        f"DEF: {defending}",
-        f"PHY: {physical}",
+        "📋 Información de la carta:",
+        f"#⃣ GRL: {ovr}",
+        f"⚽ Posición: {pos}",
+        "",
+        "📊 Estadísticas:",
+        f"⚡ Velocidad: {pace}",
+        f"🎯 Disparo: {shooting}",
+        f"⚽ Pase: {passing}",
+        f"😎 Regate: {dribbling}",
+        f"💥 Defensa: {defending}",
+        f"💪 Físico: {physical}",
     ]
     return "\n".join(line for line in lines if line is not None)
 
