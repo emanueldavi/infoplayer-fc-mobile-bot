@@ -1,4 +1,4 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import Bot, Update
 from telegram.ext import ContextTypes
 import os
@@ -72,12 +72,12 @@ def main():
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CallbackQueryHandler(botones_callback))
 
-    # Handler para datos de la Web App
-    def web_app_data_filter(update: Update) -> bool:
-        msg = update.message or update.edited_message
-        return msg is not None and getattr(msg, 'web_app_data', None) is not None
+    # Handler para datos de la Web App (filtro correcto para PTB v20+)
+    class WebAppDataFilter(filters.MessageFilter):
+        def filter(self, message):
+            return message is not None and getattr(message, 'web_app_data', None) is not None
 
-    app.add_handler(MessageHandler(web_app_data_filter, handle_webapp_data))
+    app.add_handler(MessageHandler(WebAppDataFilter(), handle_webapp_data))
     app.add_error_handler(error_handler)
 
     # Enviar mensaje al creador al iniciar

@@ -396,11 +396,22 @@ async def botones_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         jugador = next((p for p in players if str(p.get('assetId')) == player_id), None)
         
         if jugador:
-            if jugador.get('position') == 'GK':
-                stats = jugador.get('avgGkStats', {})
+            # Obtener datos completos con estadísticas (la búsqueda puede no incluir avgStats)
+            resultado = getInfoPlayerBoost(player_id, '0')
+            if isinstance(resultado, dict):
+                player_data = resultado.get('playerData', {})
+                jugador = {**jugador, **player_data}
+                if jugador.get('position') == 'GK':
+                    stats = dict(player_data.get('avgGkStats', jugador.get('avgGkStats', {})))
+                else:
+                    stats = dict(player_data.get('avgStats', jugador.get('avgStats', {})))
+                    stats['stamina'] = (player_data.get('stats') or {}).get('sta', (jugador.get('stats') or {}).get('sta', 0))
             else:
-                stats = jugador.get('avgStats', {})
-                stats['stamina'] = jugador.get('stats', {}).get('sta', 0)
+                if jugador.get('position') == 'GK':
+                    stats = dict(jugador.get('avgGkStats', {}))
+                else:
+                    stats = dict(jugador.get('avgStats', {}))
+                    stats['stamina'] = (jugador.get('stats') or {}).get('sta', 0)
             global SKILLS
             SKILLS = getSkillsName(jugador.get('assetId'), jugador.get('skillStyleSkills', []))
             context.user_data['jugador_original'] = jugador
